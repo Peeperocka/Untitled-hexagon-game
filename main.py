@@ -1,14 +1,15 @@
+import pstats
 import pygame
 import hex_utils
+import cProfile
+from utils import load_image
 
 
 class HexTile(hex_utils.Hex):
     def __init__(self, q, r, s):
         super().__init__(q, r, s)
-        self.unit = None
         self.terrain = None
         self.resource = None
-        self.corners = []
 
 
 class Camera:
@@ -19,8 +20,37 @@ class Camera:
         self.height = height
         self.speed = speed
 
-    def update(self):
-        pass
+    def apply(self, rect):
+        return pygame.Rect(rect.x - self.x, rect.y - self.y, rect.width, rect.height)
+
+    def apply_point(self, point):
+        return hex_utils.Point(point.x - self.x, point.y - self.y)
+
+
+class GameObject(pygame.sprite.Sprite):
+    def __init__(self, hex_tile, image_path, size):
+        super().__init__()
+        self.hex_tile = hex_tile
+        self.image = pygame.transform.scale(load_image(image_path), size)
+        self.rect = self.image.get_rect()
+        self.update_position(hex_tile)
+
+    def update_position(self, hex_tile):
+        self.hex_tile = hex_tile
+        self.rect.center = self.hex_tile.to_pixel(board.layout).get_coords()
+
+    def render(self, surface, camera):
+        surface.blit(self.image, camera.apply(self.rect))
+
+
+class Unit(GameObject):
+    def __init__(self, hex_tile, image_path, size):
+        super().__init__(hex_tile, image_path, size)
+
+
+class Warrior(Unit):
+    def __init__(self, hex_tile):
+        super().__init__(hex_tile, "warrior.png", (70, 70))
 
 
 class HexBoard:
@@ -45,12 +75,11 @@ class HexBoard:
 
     Деплой.
     """
-    def __init__(self, rows, cols, size, offset_x=0, offset_y=0):
+
+    def __init__(self, rows, cols, size):
         self.rows = rows
         self.cols = cols
         self.size = size
-        self.offset_x = offset_x
-        self.offset_y = offset_y
 
         self.grid = self._create_grid()
         self.white = (255, 255, 255)
@@ -62,13 +91,13 @@ class HexBoard:
         self.layout = hex_utils.Layout(
             hex_utils.layout_pointy,
             hex_utils.Point(size, size),
-            hex_utils.Point(offset_x, offset_y)
+            hex_utils.Point(0, 0)
         )
-        self.highlighted_hex = None
-        self.hovered_hex = None
 
         self.map_surface = self._create_map_surface()
         self._render_to_surface(self.map_surface)
+        self.hovered_hex = None
+        self.game_objects = []
 
     def _create_grid(self):
         grid = []
@@ -76,9 +105,11 @@ class HexBoard:
             min_q = -r // 2
             max_q = self.cols - r // 2
             row = []
+
             for q in range(min_q, max_q):
                 row.append(HexTile(q, r, -q - r))
             grid.append(row)
+
         return grid
 
     def _create_map_surface(self):
@@ -112,23 +143,16 @@ class HexBoard:
     def _render_to_surface(self, surface):
         for row in self.grid:
             for tile in row:
-                if tile is not None:
-                    corners = hex_utils.polygon_corners(self.layout, tile)
-                    pygame.draw.polygon(surface, self.white, [(c.x, c.y) for c in corners], 1)
+                if tile is None:
+                    continue
 
-                    if tile is self.highlighted_hex:
-                        pygame.draw.polygon(
-                            surface, self.highlight_color,
-                            [(c.x, c.y) for c in corners], 3)
-                    if tile is self.hovered_hex:
-                        pygame.draw.polygon(
-                            surface, self.hover_color,
-                            [(c.x, c.y) for c in corners], 3)
+                corners = hex_utils.polygon_corners(self.layout, tile)
+                pygame.draw.polygon(surface, self.white, [(c.x, c.y) for c in corners], 1)
 
-                    text_coords = f"{tile.q}, {tile.r}, {tile.s}"
-                    text_surface = self.font.render(text_coords, True, self.white)
-                    text_rect = text_surface.get_rect(center=tile.to_pixel(self.layout).get_coords())
-                    surface.blit(text_surface, text_rect)
+                text_coords = f"{tile.q}, {tile.r}, {tile.s}"
+                text_surface = self.font.render(text_coords, True, self.white)
+                text_rect = text_surface.get_rect(center=tile.to_pixel(self.layout).get_coords())
+                surface.blit(text_surface, text_rect)
 
     def _get_tile_from_pos(self, pos, camera):
         screen_x, screen_y = pos
@@ -147,6 +171,7 @@ class HexBoard:
                 for tile in self.grid[hex.r]:
                     if tile.q == hex.q:
                         return tile
+
         return None
 
     def handle_mouse_movement(self, pos, camera):
@@ -164,10 +189,27 @@ class HexBoard:
         else:
             print("Clicked outside the grid.")
 
+    def add_game_object(self, game_object):
+        self.game_objects.append(game_object)
+
     def render(self, screen, camera):
         screen.blit(self.map_surface, (-camera.x, -camera.y))
-        pygame.draw.line(screen, 'green', (500, 0), (500, 800))
-        pygame.draw.line(screen, 'green', (0, 400), (1000, 400))
+
+    def get_visible_entities(self, camera):
+        visible_entities = []
+        screen_width = screen.get_width()
+        screen_height = screen.get_height()
+
+        camera_rect = pygame.Rect(camera.x, camera.y, screen_width, screen_height)
+
+        for entity in self.game_objects:
+
+            entity_rect = entity.rect
+
+            if camera_rect.colliderect(entity_rect):
+                visible_entities.append(entity)
+
+        return visible_entities
 
 
 if __name__ == '__main__':
@@ -176,16 +218,24 @@ if __name__ == '__main__':
     FPS = 60
     WIDTH, HEIGHT = 1000, 800
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Гексагональное поле")
 
     font = pygame.font.Font(None, 20)
 
     clock = pygame.time.Clock()
 
     running = True
-    board = HexBoard(10, 10, 50, 0, 0)
+    board = HexBoard(200, 200, 50)
+
+    for i in range(20):
+        for j in range(2):
+            initial_tile = board.grid[i][j]
+            warrior = Warrior(initial_tile)
+            board.add_game_object(warrior)
 
     camera = Camera(WIDTH, HEIGHT, 20)
+
+    profiler = cProfile.Profile()
+    profiler.enable()
 
     while running:
         for event in pygame.event.get():
@@ -218,8 +268,18 @@ if __name__ == '__main__':
         screen.fill(board.black)
         board.render(screen, camera)
 
+        visible_entities = board.get_visible_entities(camera)
+        print(visible_entities)
+
+        for entity in visible_entities:
+            entity.render(screen, camera)
+
         pygame.display.flip()
-        # print(clock.get_fps())
+        print(clock.get_fps())
         clock.tick(FPS)
+
+    profiler.disable()
+    stats = pstats.Stats(profiler)
+    stats.sort_stats('tottime').print_stats(20)
 
     pygame.quit()
