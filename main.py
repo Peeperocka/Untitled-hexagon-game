@@ -264,18 +264,15 @@ if __name__ == '__main__':
         if keys[pygame.K_s]:
             camera.y += camera.speed
 
-        camera.update()
         screen.fill(board.black)
         board.render(screen, camera)
 
         visible_entities = board.get_visible_entities(camera)
-        print(visible_entities)
 
         for entity in visible_entities:
             entity.render(screen, camera)
 
         pygame.display.flip()
-        print(clock.get_fps())
         clock.tick(FPS)
 
     profiler.disable()
