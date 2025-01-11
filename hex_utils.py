@@ -12,22 +12,28 @@ class Point:
 
 
 class Hex:
-    def __init__(self, q, r, s):
+    def __init__(self, q, r, s, terrain=None, resource=None, unit=None):
         if round(q + r + s) != 0:  # сумма векторов должна быть равна 0
             raise ValueError("q + r + s must be 0")
 
         self.q = q
         self.r = r
         self.s = s
+        self.terrain = terrain
+        self.resource = resource
+        self.unit = unit
 
     def __add__(self, other):
-        return Hex(self.q + other.q, self.r + other.r, self.s + other.s)
+        return Hex(self.q + other.q, self.r + other.r, self.s + other.s,
+                   self.terrain, self.resource, self.unit)
 
     def __sub__(self, other):
-        return Hex(self.q - other.q, self.r - other.r, self.s - other.s)
+        return Hex(self.q - other.q, self.r - other.r, self.s - other.s,
+                   self.terrain, self.resource, self.unit)
 
     def __mul__(self, k):
-        return Hex(self.q * k, self.r * k, self.s * k)
+        return Hex(self.q * k, self.r * k, self.s * k,
+                   self.terrain, self.resource, self.unit)
 
     def length(self):
         return (abs(self.q) + abs(self.r) + abs(self.s)) // 2
@@ -52,7 +58,7 @@ class Hex:
         else:
             si = -qi - ri
 
-        return Hex(qi, ri, si)
+        return Hex(qi, ri, si, self.terrain, self.resource, self.unit)
 
     def lerp(self, other, t):
         return Hex(self.q * (1.0 - t) + other.q * t,
@@ -76,6 +82,17 @@ class Hex:
         x = (M.f0 * self.q + M.f1 * self.r) * size.x
         y = (M.f2 * self.q + M.f3 * self.r) * size.y
         return Point(x + origin.x, y + origin.y)
+
+    def get_hexes_in_radius(self, n, hex_board):
+        results = []
+        for dq in range(-n, n + 1):
+            for dr in range(max(-n, -dq - n), min(n, -dq + n) + 1):
+                ds = -dq - dr
+                neighbor_coords = Hex(self.q + dq, self.r + dr, self.s + ds)
+                tile = hex_board.get_tile_by_hex(neighbor_coords)
+                if tile:
+                    results.append(tile)
+        return results
 
 
 Orientation = collections.namedtuple(

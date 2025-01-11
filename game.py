@@ -5,13 +5,6 @@ import cProfile
 from utils import load_image
 
 
-class HexTile(hex_utils.Hex):
-    def __init__(self, q, r, s):
-        super().__init__(q, r, s)
-        self.terrain = None
-        self.resource = None
-
-
 class Camera:
     def __init__(self, width, height, speed):
         self.x = 0
@@ -33,19 +26,84 @@ class GameObject(pygame.sprite.Sprite):
         self.hex_tile = hex_tile
         self.image = pygame.transform.scale(load_image(image_path), size)
         self.rect = self.image.get_rect()
+        self.base_y = 0
         self.update_position(hex_tile)
 
     def update_position(self, hex_tile):
         self.hex_tile = hex_tile
-        self.rect.center = self.hex_tile.to_pixel(board.layout).get_coords()
+        self.hex_tile.unit = self
+        pixel_coords = self.hex_tile.to_pixel(board.layout).get_coords()
+        self.rect.center = pixel_coords
+        self.base_y = self.rect.centery
 
     def render(self, surface, camera):
         surface.blit(self.image, camera.apply(self.rect))
 
 
 class Unit(GameObject):
+    JUMP_HEIGHT = 10
+    JUMP_INTERVAL = 60
+    JUMP_SPEED = 1
+
     def __init__(self, hex_tile, image_path, size):
         super().__init__(hex_tile, image_path, size)
+        self.jump_offset = 0
+        self.is_jumping = False
+        self.selected = False
+        self.frame_count = 0
+        self.hex_tile.unit = self
+        self.range = 3
+
+    def update(self):
+        self.frame_count += 1
+
+        if self.selected:
+            return
+
+        if not self.is_jumping and self.frame_count % self.JUMP_INTERVAL == 0:
+            self.is_jumping = True
+            self.jump_offset = 0
+            self.jump_direction = -1
+
+        if self.is_jumping:
+            if self.jump_direction == -1:
+                self.rect.centery -= self.JUMP_SPEED
+                self.jump_offset += self.JUMP_SPEED
+
+                if self.jump_offset >= self.JUMP_HEIGHT:
+                    self.jump_direction = 1
+
+            elif self.jump_direction == 1:
+                self.rect.centery += self.JUMP_SPEED
+                self.jump_offset -= self.JUMP_SPEED
+
+                if self.jump_offset <= 0:
+                    self.is_jumping = False
+                    pixel_coords = self.hex_tile.to_pixel(board.layout).get_coords()
+                    self.rect.centery = pixel_coords[1]
+
+    def kill(self):
+        self.hex_tile.unit = None
+        super().kill()
+
+    def move_to(self, target_tile, board):
+        if target_tile == self.hex_tile:
+            print("Already on this tile.")
+            return False
+
+        if target_tile.unit is not None:
+            print("Tile is occupied.")
+            return False
+
+        if target_tile not in self.hex_tile.get_hexes_in_radius(self.range, board):
+            print("Target tile is out of range.")
+            return False
+
+        old_tile = self.hex_tile
+        old_tile.unit = None
+        self.update_position(target_tile)
+        print(f"Unit moved to: q={self.hex_tile.q}, r={self.hex_tile.r}, s={self.hex_tile.s}")
+        return True
 
 
 class Warrior(Unit):
@@ -84,8 +142,8 @@ class HexBoard:
         self.grid = self._create_grid()
         self.white = (255, 255, 255)
         self.black = (0, 0, 0)
-        self.highlight_color = (200, 200, 0)
-        self.hover_color = (150, 150, 150)
+        self.selection_color = (200, 200, 0)
+        self.highlight_color = (121, 182, 201)
         self.font = pygame.font.Font(None, 18)
 
         self.layout = hex_utils.Layout(
@@ -96,7 +154,8 @@ class HexBoard:
 
         self.map_surface = self._create_map_surface()
         self._render_to_surface(self.map_surface)
-        self.hovered_hex = None
+        self.selected_tile = None
+        self.highlighted_hexes = []
         self.game_objects = []
 
     def _create_grid(self):
@@ -107,7 +166,7 @@ class HexBoard:
             row = []
 
             for q in range(min_q, max_q):
-                row.append(HexTile(q, r, -q - r))
+                row.append(hex_utils.Hex(q, r, -q - r))
             grid.append(row)
 
         return grid
@@ -147,6 +206,7 @@ class HexBoard:
                     continue
 
                 corners = hex_utils.polygon_corners(self.layout, tile)
+                pygame.draw.polygon(surface, (8, 72, 8), [(c.x, c.y) for c in corners], 0)
                 pygame.draw.polygon(surface, self.white, [(c.x, c.y) for c in corners], 1)
 
                 text_coords = f"{tile.q}, {tile.r}, {tile.s}"
@@ -161,9 +221,9 @@ class HexBoard:
         world_y = screen_y + camera.y
 
         hex = hex_utils.pixel_to_hex(self.layout, hex_utils.Point(world_x, world_y)).round()
-        return self._get_tile_by_hex(hex)
+        return self.get_tile_by_hex(hex)
 
-    def _get_tile_by_hex(self, hex):
+    def get_tile_by_hex(self, hex):
         if 0 <= hex.r < self.rows:
             min_q = -hex.r // 2
             max_q = self.cols - hex.r // 2
@@ -174,26 +234,24 @@ class HexBoard:
 
         return None
 
-    def handle_mouse_movement(self, pos, camera):
-        hovered_tile = self._get_tile_from_pos(pos, camera)
-        if hovered_tile != self.hovered_hex:
-            self.hovered_hex = hovered_tile
-            self.map_surface = self._create_map_surface()
-            self._render_to_surface(self.map_surface)
-
     def get_click(self, pos, camera):
-        tile = self._get_tile_from_pos(pos, camera)
-        if tile:
-            self.highlighted_hex = tile
-            print(f"Clicked hex: q={self.highlighted_hex.q}, r={self.highlighted_hex.r}, s={self.highlighted_hex.s}")
-        else:
-            print("Clicked outside the grid.")
+        return self._get_tile_from_pos(pos, camera)
 
     def add_game_object(self, game_object):
         self.game_objects.append(game_object)
 
     def render(self, screen, camera):
         screen.blit(self.map_surface, (-camera.x, -camera.y))
+
+        if self.highlighted_hexes:
+            for hex in self.highlighted_hexes:
+                corners = hex_utils.polygon_corners(self.layout, hex)
+                pygame.draw.polygon(screen, self.highlight_color, [(c.x - camera.x, c.y - camera.y) for c in corners],
+                                    1)
+
+        if self.selected_tile:
+            corners = hex_utils.polygon_corners(self.layout, self.selected_tile)
+            pygame.draw.polygon(screen, self.selection_color, [(c.x - camera.x, c.y - camera.y) for c in corners], 2)
 
     def get_visible_entities(self, camera):
         visible_entities = []
@@ -224,18 +282,22 @@ if __name__ == '__main__':
     clock = pygame.time.Clock()
 
     running = True
-    board = HexBoard(200, 200, 50)
+    board = HexBoard(20, 20, 50)
+
+    all_warriors = pygame.sprite.Group()
 
     for i in range(20):
         for j in range(2):
             initial_tile = board.grid[i][j]
             warrior = Warrior(initial_tile)
             board.add_game_object(warrior)
+            all_warriors.add(warrior)
 
     camera = Camera(WIDTH, HEIGHT, 20)
 
     profiler = cProfile.Profile()
     profiler.enable()
+    selected_unit = None
 
     while running:
         for event in pygame.event.get():
@@ -245,13 +307,46 @@ if __name__ == '__main__':
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     pos = event.pos
-                    board.get_click(pos, camera)
+                    clicked_tile = board.get_click(pos, camera)
 
-                if event.button == 4:
-                    pass  # прокрутка вниз
+                    if not clicked_tile:
+                        print("Clicked outside the grid.")
+                        continue
 
-                elif event.button == 5:
-                    pass  # прокрутка вверх
+                    print(f"Clicked hex: q={clicked_tile.q}, r={clicked_tile.r}, s={clicked_tile.s}")
+
+                    if selected_unit:
+                        if selected_unit.move_to(clicked_tile, board):
+                            selected_unit.selected = False
+                            selected_unit = None
+                            board.selected_tile = None
+
+                    else:
+                        if clicked_tile.unit:
+                            print(f"Clicked unit: {clicked_tile.unit}")
+
+                            if selected_unit == clicked_tile.unit:
+                                selected_unit.selected = False
+                                selected_unit = None
+
+                            else:
+                                if selected_unit:
+                                    selected_unit.selected = False
+                                selected_unit = clicked_tile.unit
+                                selected_unit.selected = True
+
+                            board.selected_tile = clicked_tile
+
+                        else:
+                            board.selected_tile = clicked_tile
+
+                    # Update highlighted hexes based on the current selected_tile
+                    board.highlighted_hexes = []
+                    if board.selected_tile and board.selected_tile.unit:
+                        board.highlighted_hexes = board.selected_tile.get_hexes_in_radius(
+                            board.selected_tile.unit.range, board)
+
+                    print("=" * 50)
 
         keys = pygame.key.get_pressed()
 
@@ -266,6 +361,8 @@ if __name__ == '__main__':
 
         screen.fill(board.black)
         board.render(screen, camera)
+
+        all_warriors.update()
 
         visible_entities = board.get_visible_entities(camera)
 
