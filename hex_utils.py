@@ -35,6 +35,12 @@ class Hex:
         return Hex(self.q * k, self.r * k, self.s * k,
                    self.terrain, self.resource, self.unit)
 
+    def __eq__(self, other):
+        return self.q == other.q and self.r == other.r and self.s == other.s
+
+    def __hash__(self):
+        return hash((self.q, self.r, self.s))
+
     def length(self):
         return (abs(self.q) + abs(self.r) + abs(self.s)) // 2
 
@@ -83,6 +89,16 @@ class Hex:
         y = (M.f2 * self.q + M.f3 * self.r) * size.y
         return Point(x + origin.x, y + origin.y)
 
+    def get_neighbors(self):
+        return [
+            Hex(self.q + 1, self.r, self.s - 1),
+            Hex(self.q + 1, self.r - 1, self.s),
+            Hex(self.q, self.r - 1, self.s + 1),
+            Hex(self.q - 1, self.r, self.s + 1),
+            Hex(self.q - 1, self.r + 1, self.s),
+            Hex(self.q, self.r + 1, self.s - 1),
+        ]
+
     def get_hexes_in_radius(self, n, hex_board):
         results = []
         for dq in range(-n, n + 1):
@@ -93,6 +109,10 @@ class Hex:
                 if tile:
                     results.append(tile)
         return results
+
+
+def cube_distance(hex1, hex2):
+    return max(abs(hex1.q - hex2.q), abs(hex1.r - hex2.r), abs(hex1.s - hex2.s))
 
 
 Orientation = collections.namedtuple(
