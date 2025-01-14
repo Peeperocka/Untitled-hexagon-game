@@ -6,6 +6,9 @@ import hex_utils
 import cProfile
 from utils import load_image
 
+all_sprites = pygame.sprite.Group()
+all_units = pygame.sprite.Group()
+
 
 class Camera:
     def __init__(self, width, height, speed):
@@ -32,19 +35,36 @@ class Player:
 
 
 class GameManager:
-    def __init__(self, players):
+    def __init__(self, players, board, camera, ui_manager, unit_info_text):
         self.players = players
         self.current_player_index = 0
         self.current_round = 1
+        self.board = board
+        self.camera = camera
+        self.ui_manager = ui_manager
+        self.unit_info_text = unit_info_text
+        self.selected_unit = None
+
+        self.selecting_unit_state = SelectingUnitState(self, board, camera, ui_manager, unit_info_text)
+        self.unit_selected_state = UnitSelectedState(self, board, camera, ui_manager, unit_info_text)
+        self.current_state = self.selecting_unit_state
 
     def next_player(self):
+        for player in self.players:
+            for unit in player.units:
+                unit.selected = False
+        self.board.highlighted_hexes = []
+        self.selected_unit = None
+        self.current_state = self.selecting_unit_state
+
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
         print('=' * 50)
+
+        print(f"It's {self.get_current_player()}'s turn.")
+
         if self.current_player_index == 0:
             self.end_round()
             return
-
-        print(f"It's {self.get_current_player()}'s turn.")
 
     def get_current_player(self):
         return self.players[self.current_player_index]
@@ -60,6 +80,28 @@ class GameManager:
         self.current_round += 1
         print(f"--- Starting Round {self.current_round} ---")
         print(f"It's {self.get_current_player()}'s turn.")
+
+    def process_mouse_click(self, pos):
+        self.current_state.handle_mouse_click(pos)
+
+    def update_ui_for_selected_unit(self):
+        if self.selected_unit:
+            self.unit_info_text.html_text = self.selected_unit.get_unit_info_text()
+            self.unit_info_text.rebuild()
+            self.board.enemy_reachable_hexes = []
+            self.board.enemy_attackable_hexes = []
+            for other_unit in all_units:
+                if other_unit.player_id != self.selected_unit.player_id:
+                    distance = hex_utils.cube_distance(self.selected_unit.hex_tile, other_unit.hex_tile)
+                    if distance <= self.selected_unit.current_movement_range:
+                        self.board.enemy_reachable_hexes.append(other_unit)
+                    if distance <= self.selected_unit.attack_range:
+                        self.board.enemy_attackable_hexes.append(other_unit)
+        else:
+            self.unit_info_text.html_text = "Select a unit to see information."
+            self.unit_info_text.rebuild()
+            self.board.enemy_reachable_hexes = []
+            self.board.enemy_attackable_hexes = []
 
 
 class GameObject(pygame.sprite.Sprite):
@@ -83,25 +125,30 @@ class GameObject(pygame.sprite.Sprite):
 
 
 class Unit(GameObject):
-    JUMP_HEIGHT = 10
-    JUMP_INTERVAL = 60
-    JUMP_SPEED = 1
-
-    def __init__(self, hex_tile, image_path, size, player, damage, damage_spread, hp, movement_range):
+    def __init__(self, hex_tile, image_path, size, player, damage, damage_spread, hp, movement_range, attack_range):
         super().__init__(hex_tile, image_path, size)
+        all_units.add(self)
         self.jump_offset = 0
         self.is_jumping = False
         self.selected = False
         self.frame_count = 0
         self.hex_tile.unit = self
+        self.JUMP_HEIGHT = 10
+        self.JUMP_INTERVAL = 60
+        self.JUMP_SPEED = 1
+        self.HEALTH_BAR_WIDTH = 40
+        self.HEALTH_BAR_HEIGHT = 8
+        self.HEALTH_BAR_OFFSET = 30
 
         self.player = player
         self.damage = damage
         self.damage_spread = damage_spread
         self.hp = hp
+        self.max_hp = hp
         self.max_movement_range = movement_range
         self.current_movement_range = movement_range
         self.can_attack = True
+        self.attack_range = attack_range
 
     @property
     def player_id(self):
@@ -110,9 +157,17 @@ class Unit(GameObject):
     def update(self):
         self.frame_count += 1
 
-        if self.selected or self.current_movement_range == 0:
+        if self.selected:
+            self._handle_jump()
             return
 
+        if game_manager.is_current_player(self.player) and self.current_movement_range > 0:
+            self._handle_jump()
+        elif not self.is_jumping:
+            pixel_coords = self.hex_tile.to_pixel(board.layout).get_coords()
+            self.rect.centery = pixel_coords[1]
+
+    def _handle_jump(self):
         if not self.is_jumping and self.frame_count % self.JUMP_INTERVAL == 0:
             self.is_jumping = True
             self.jump_offset = 0
@@ -149,6 +204,11 @@ class Unit(GameObject):
         if not isinstance(target_unit, Unit):
             raise ValueError("Target must be an instance of Unit.")
 
+        distance = hex_utils.cube_distance(self.hex_tile, target_unit.hex_tile)
+        if distance > self.attack_range:
+            print(f"{target_unit} is out of attack range.")
+            return False
+
         damage_dealt = max(0, self.damage + random.randint(-self.damage_spread, self.damage_spread))
         target_unit.take_damage(damage_dealt)
         print(f"{self} attacked {target_unit} for {damage_dealt} damage.")
@@ -159,6 +219,7 @@ class Unit(GameObject):
     def kill(self):
         self.hex_tile.unit = None
         self.player.units.remove(self)
+        all_units.remove(self)
         super().kill()
 
     def move_to(self, target_tile, board):
@@ -201,11 +262,34 @@ class Unit(GameObject):
             f"<font color='#AAAAAA'>Movement: {self.current_movement_range}/{self.max_movement_range}</font>"
         )
 
+    def get_enemy_unit_info_text(self):
+        return (
+            f"<font color='#FF0000'><b>[ENEMY] {type(self).__name__}</b></font><br>"
+            f"<font color='#AAAAAA'>HP: {self.hp}</font><br>"
+            f"<font color='#AAAAAA'>Damage: {self.damage} (+/- {self.damage_spread})</font><br>"
+            f"<font color='#AAAAAA'>Movement: {self.current_movement_range}/{self.max_movement_range}</font>"
+        )
+
+    def draw_health_bar(self, surface, camera):
+        if self.hp != self.max_hp:
+            bar_x = self.rect.centerx - self.HEALTH_BAR_WIDTH // 2 - camera.x
+            bar_y = self.rect.centery + self.HEALTH_BAR_OFFSET - camera.y
+            ratio = self.hp / self.max_hp
+            fill_width = int(ratio * self.HEALTH_BAR_WIDTH)
+            health_bar_rect = pygame.Rect(bar_x, bar_y, self.HEALTH_BAR_WIDTH, self.HEALTH_BAR_HEIGHT)
+            fill_rect = pygame.Rect(bar_x, bar_y, fill_width, self.HEALTH_BAR_HEIGHT)
+            pygame.draw.rect(surface, (40, 40, 40), health_bar_rect)
+            pygame.draw.rect(surface, (0, 200, 0), fill_rect)
+
+    def render(self, surface, camera):
+        super().render(surface, camera)
+        self.draw_health_bar(surface, camera)
+
 
 class Warrior(Unit):
     def __init__(self, hex_tile, player):
         super().__init__(hex_tile, "warrior.png", (70, 70), player, damage=30, damage_spread=7, hp=100,
-                         movement_range=3)
+                         movement_range=3, attack_range=1)
 
 
 class HexBoard:
@@ -215,11 +299,17 @@ class HexBoard:
         self.size = size
 
         self.grid = self._create_grid()
-        self.white = (255, 255, 255)
-        self.black = (0, 0, 0)
-        self.selection_color = (200, 200, 0)
-        self.highlight_color = (121, 182, 201)
-        self.path_color = (200, 0, 200)
+        self.colors = {
+            'white': (255, 255, 255),
+            'black': (0, 0, 0),
+            'selection': (200, 200, 0),
+            'highlight': (20, 20, 184),
+            'enemy_reachable': (255, 165, 0),
+            'enemy_attackable': (255, 0, 0),
+            'path': (200, 0, 200),
+            'tile': (149, 187, 100),
+            'background': (96, 96, 96)
+        }
         self.font = pygame.font.Font(None, 18)
 
         self.layout = hex_utils.Layout(
@@ -232,8 +322,9 @@ class HexBoard:
         self._render_to_surface(self.map_surface)
         self.selected_tile = None
         self.highlighted_hexes = []
+        self.enemy_reachable_hexes = []
+        self.enemy_attackable_hexes = []
         self.path_to_target = []
-        self.game_objects = []
 
     def _create_grid(self):
         grid = []
@@ -283,11 +374,11 @@ class HexBoard:
                     continue
 
                 corners = hex_utils.polygon_corners(self.layout, tile)
-                pygame.draw.polygon(surface, (8, 72, 8), [(c.x, c.y) for c in corners], 0)
-                pygame.draw.polygon(surface, self.white, [(c.x, c.y) for c in corners], 1)
+                pygame.draw.polygon(surface, self.colors['tile'], [(c.x, c.y) for c in corners], 0)
+                pygame.draw.polygon(surface, self.colors['black'], [(c.x, c.y) for c in corners], 2)
 
                 text_coords = f"{tile.q}, {tile.r}, {tile.s}"
-                text_surface = self.font.render(text_coords, True, self.white)
+                text_surface = self.font.render(text_coords, True, self.colors['white'])
                 text_rect = text_surface.get_rect(center=tile.to_pixel(self.layout).get_coords())
                 surface.blit(text_surface, text_rect)
 
@@ -313,9 +404,6 @@ class HexBoard:
 
     def get_click(self, pos, camera):
         return self._get_tile_from_pos(pos, camera)
-
-    def add_game_object(self, game_object):
-        self.game_objects.append(game_object)
 
     def heuristic(self, a, b):
         return hex_utils.cube_distance(a, b)
@@ -366,17 +454,30 @@ class HexBoard:
         if self.highlighted_hexes:
             for hex in self.highlighted_hexes:
                 corners = hex_utils.polygon_corners(self.layout, hex)
-                pygame.draw.polygon(screen, self.highlight_color, [(c.x - camera.x, c.y - camera.y) for c in corners],
-                                    1)
+                pygame.draw.polygon(screen, self.colors['highlight'],
+                                    [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
+
+        for enemy_unit in self.enemy_attackable_hexes:
+            corners = hex_utils.polygon_corners(self.layout, enemy_unit.hex_tile)
+            pygame.draw.polygon(screen, self.colors['enemy_attackable'],
+                                [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
+
+        for enemy_unit in self.enemy_reachable_hexes:
+            if enemy_unit not in self.enemy_attackable_hexes:
+                corners = hex_utils.polygon_corners(self.layout, enemy_unit.hex_tile)
+                pygame.draw.polygon(screen, self.colors['enemy_reachable'],
+                                    [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
 
         if self.path_to_target:
             for hex_tile in self.path_to_target:
                 corners = hex_utils.polygon_corners(self.layout, hex_tile)
-                pygame.draw.polygon(screen, self.path_color, [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
+                pygame.draw.polygon(screen, self.colors['path'],
+                                    [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
 
         if self.selected_tile:
             corners = hex_utils.polygon_corners(self.layout, self.selected_tile)
-            pygame.draw.polygon(screen, self.selection_color, [(c.x - camera.x, c.y - camera.y) for c in corners], 2)
+            pygame.draw.polygon(screen, self.colors['selection'],
+                                [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
 
     def get_visible_entities(self, camera):
         visible_entities = []
@@ -385,25 +486,130 @@ class HexBoard:
 
         camera_rect = pygame.Rect(camera.x, camera.y, screen_width, screen_height)
 
-        for entity in self.game_objects:
-
+        for entity in all_sprites:
             entity_rect = entity.rect
-
             if camera_rect.colliderect(entity_rect):
                 visible_entities.append(entity)
 
         return visible_entities
 
+    def get_reachable_tiles(self, unit):
+        reachable = set()
+        queue = [(unit.hex_tile, unit.current_movement_range)]
+        visited = {unit.hex_tile}
+
+        while queue:
+            current_tile, remaining_movement = queue.pop(0)
+            reachable.add(current_tile)
+
+            if remaining_movement > 0:
+                for neighbor_coords in current_tile.get_neighbors():
+                    neighbor_tile = self.get_tile_by_hex(neighbor_coords)
+                    if neighbor_tile and neighbor_tile not in visited and neighbor_tile.unit is None:
+                        visited.add(neighbor_tile)
+                        queue.append((neighbor_tile, remaining_movement - 1))
+
+        return reachable
+
+
+class GameState:
+    def __init__(self, game_manager, board, camera, ui_manager, unit_info_text):
+        self.game_manager = game_manager
+        self.board = board
+        self.camera = camera
+        self.ui_manager = ui_manager
+        self.unit_info_text = unit_info_text
+
+    def handle_mouse_click(self, pos):
+        raise NotImplementedError("Subclasses must implement this method")
+
+
+class SelectingUnitState(GameState):
+    def handle_mouse_click(self, pos):
+        clicked_tile = self.board.get_click(pos, self.camera)
+        if not clicked_tile:
+            print("Clicked outside the grid.")
+            return
+
+        if clicked_tile.unit and self.game_manager.is_current_player(clicked_tile.unit.player):
+            print(f"Clicked unit: {clicked_tile.unit}")
+            self.game_manager.selected_unit = clicked_tile.unit
+            self.game_manager.current_state = self.game_manager.unit_selected_state
+            self.game_manager.update_ui_for_selected_unit()
+            self.board.selected_tile = clicked_tile
+            self.board.highlighted_hexes = list(self.board.get_reachable_tiles(clicked_tile.unit))
+        elif clicked_tile.unit:
+            self.game_manager.selected_unit = None
+            self.board.selected_tile = clicked_tile
+            self.board.path_to_target = []
+            self.unit_info_text.html_text = clicked_tile.unit.get_enemy_unit_info_text()
+            self.unit_info_text.rebuild()
+            self.board.enemy_reachable_hexes = []
+            self.board.enemy_attackable_hexes = []
+        else:
+            self.game_manager.selected_unit = None
+            self.board.selected_tile = clicked_tile
+            self.board.path_to_target = []
+            self.unit_info_text.html_text = "Select a unit to see information."
+            self.unit_info_text.rebuild()
+            self.board.enemy_reachable_hexes = []
+            self.board.enemy_attackable_hexes = []
+            self.board.highlighted_hexes = []
+
+
+class UnitSelectedState(GameState):
+    def handle_mouse_click(self, pos):
+        clicked_tile = self.board.get_click(pos, self.camera)
+        if not clicked_tile:
+            print("Clicked outside the grid.")
+            return
+
+        selected_unit = self.game_manager.selected_unit
+
+        if clicked_tile == selected_unit.hex_tile:
+            self.game_manager.selected_unit = None
+            self.game_manager.current_state = self.game_manager.selecting_unit_state
+            self.board.selected_tile = None
+            self.board.path_to_target = []
+            self.unit_info_text.html_text = "Select a unit to see information."
+            self.unit_info_text.rebuild()
+            self.board.enemy_reachable_hexes = []
+            self.board.enemy_attackable_hexes = []
+            self.board.highlighted_hexes = []
+        elif clicked_tile.unit and clicked_tile.unit != selected_unit and clicked_tile.unit.player_id != selected_unit.player_id:
+            if selected_unit.attack(clicked_tile.unit):
+                self.game_manager.selected_unit = None
+                self.game_manager.current_state = self.game_manager.selecting_unit_state
+                self.board.selected_tile = None
+                self.board.path_to_target = []
+                self.unit_info_text.html_text = "Select a unit to see information."
+                self.unit_info_text.rebuild()
+                self.board.enemy_reachable_hexes = []
+                self.board.enemy_attackable_hexes = []
+                self.board.highlighted_hexes = []
+        elif selected_unit.move_to(clicked_tile, self.board):
+            self.game_manager.selected_unit = None
+            self.game_manager.current_state = self.game_manager.selecting_unit_state
+            self.board.selected_tile = None
+            self.board.path_to_target = []
+            self.unit_info_text.html_text = "Select a unit to see information."
+            self.unit_info_text.rebuild()
+            self.board.enemy_reachable_hexes = []
+            self.board.enemy_attackable_hexes = []
+            self.board.highlighted_hexes = []
+        else:
+            self.board.path_to_target = self.board.find_path(selected_unit.hex_tile,
+                                                             clicked_tile) if clicked_tile else []
+
 
 def place_units_for_testing(board, player1, player2, player1_units_data, player2_units_data):
-    global all_sprites
+    global all_sprites, all_units
 
     for unit_type, hex_coords in player1_units_data:
         tile = board.get_tile_by_hex(hex_utils.Hex(*hex_coords))
         if tile and tile.unit is None:
             unit = unit_type(tile, player1)
             player1.units.add(unit)
-            board.add_game_object(unit)
         else:
             print(f"Could not place unit {unit_type} at {hex_coords} for Player 1.")
 
@@ -412,7 +618,6 @@ def place_units_for_testing(board, player1, player2, player1_units_data, player2
         if tile and tile.unit is None:
             unit = unit_type(tile, player2)
             player2.units.add(unit)
-            board.add_game_object(unit)
         else:
             print(f"Could not place unit {unit_type} at {hex_coords} for Player 2.")
 
@@ -452,7 +657,8 @@ if __name__ == '__main__':
     player1 = Player(1)
     player2 = Player(2)
     players = [player1, player2]
-    game_manager = GameManager(players)
+    camera = Camera(WIDTH, HEIGHT, 20)
+    game_manager = GameManager(players, board, camera, ui_manager, unit_info_text)
 
     player1_data = [
         (Warrior, (0, 0, 0)),
@@ -465,8 +671,6 @@ if __name__ == '__main__':
         (Warrior, (2, 2, -4)),
     ]
     place_units_for_testing(board, player1, player2, player1_data, player2_data)
-
-    camera = Camera(WIDTH, HEIGHT, 20)
 
     profiler = cProfile.Profile()
     profiler.enable()
@@ -483,80 +687,10 @@ if __name__ == '__main__':
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     game_manager.next_player()
-                    selected_unit = None
-                    board.selected_tile = None
-                    board.path_to_target = []
-                    unit_info_text.html_text = "Select a unit to see information."
-                    unit_info_text.rebuild()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    pos = event.pos
-                    clicked_tile = board.get_click(pos, camera)
-
-                    if not clicked_tile:
-                        print("Clicked outside the grid.")
-                        continue
-
-                    if selected_unit:
-                        if clicked_tile == selected_unit.hex_tile:
-                            selected_unit.selected = False
-                            selected_unit = None
-                            board.selected_tile = None
-                            board.path_to_target = []
-                            unit_info_text.html_text = "Select a unit to see information."
-                            unit_info_text.rebuild()
-                        elif clicked_tile.unit and clicked_tile.unit != selected_unit and clicked_tile.unit.player_id != selected_unit.player_id:
-                            if selected_unit.attack(clicked_tile.unit):
-                                selected_unit.selected = False
-                                selected_unit = None
-                                board.selected_tile = None
-                                board.path_to_target = []
-                                unit_info_text.html_text = "Select a unit to see information."
-                                unit_info_text.rebuild()
-                        elif selected_unit.move_to(clicked_tile, board):
-                            selected_unit.selected = False
-                            selected_unit = None
-                            board.selected_tile = None
-                            board.path_to_target = []
-                            unit_info_text.html_text = "Select a unit to see information."
-                            unit_info_text.rebuild()
-                        else:
-                            board.path_to_target = board.find_path(selected_unit.hex_tile,
-                                                                   clicked_tile) if clicked_tile else []
-
-                    else:
-                        if clicked_tile.unit and game_manager.is_current_player(clicked_tile.unit.player):
-                            print(f"Clicked unit: {clicked_tile.unit}")
-
-                            if selected_unit == clicked_tile.unit:
-                                selected_unit.selected = False
-                                selected_unit = None
-                                board.path_to_target = []
-                                unit_info_text.html_text = "Select a unit to see information."
-                                unit_info_text.rebuild()
-
-                            else:
-                                if selected_unit:
-                                    selected_unit.selected = False
-                                selected_unit = clicked_tile.unit
-                                selected_unit.selected = True
-                                board.path_to_target = []
-                                unit_info_text.html_text = selected_unit.get_unit_info_text()
-                                unit_info_text.rebuild()
-
-                            board.selected_tile = clicked_tile
-
-                        else:
-                            board.selected_tile = clicked_tile
-                            board.path_to_target = []
-                            unit_info_text.html_text = "Select a unit to see information."
-                            unit_info_text.rebuild()
-
-                    board.highlighted_hexes = []
-                    if board.selected_tile and board.selected_tile.unit:
-                        board.highlighted_hexes = board.selected_tile.get_hexes_in_radius(
-                            board.selected_tile.unit.current_movement_range, board)
+                    game_manager.process_mouse_click(event.pos)
 
             ui_manager.process_events(event)
 
@@ -573,12 +707,12 @@ if __name__ == '__main__':
 
         ui_manager.update(time_delta)
 
-        screen.fill(board.black)
+        screen.fill(board.colors['background'])
         board.render(screen, camera)
 
-        for obj in board.game_objects:
-            obj.update()
-            obj.render(screen, camera)
+        for sprite in all_sprites:
+            sprite.update()
+            sprite.render(screen, camera)
 
         ui_manager.draw_ui(screen)
 
