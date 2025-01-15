@@ -1,0 +1,36 @@
+import pygame
+import sys
+
+pygame.init()
+
+A = pygame.display.set_mode((900, 900))
+pygame.display.set_caption("Масштабируемое поле")
+
+C = (255, 255, 255)
+D = (0, 0, 0)
+H = True
+F = 1
+
+def G(surface, s):
+    for i in range(0, 900, 10):
+        pygame.draw.line(surface, D, (i * s, 0), (i * s, 900 * s))
+    for j in range(0, 900, 10):
+        pygame.draw.line(surface, D, (0, j * s), (900 * s, j * s))
+
+while H:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            H = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 4:
+                F += 0.1
+            elif event.button == 5:
+                F = max(0.1, F - 0.1)
+
+    A.fill(C)
+    G(A, F)
+    pygame.display.flip()
+
+pygame.quit()
+sys.exit()
