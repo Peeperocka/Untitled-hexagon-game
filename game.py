@@ -161,7 +161,7 @@ class Unit(GameObject):
             self._handle_jump()
             return
 
-        if game_manager.is_current_player(self.player) and self.current_movement_range > 0:
+        if game_manager.is_current_player(self.player) and (self.current_movement_range > 0 or self.can_attack):
             self._handle_jump()
         elif not self.is_jumping:
             pixel_coords = self.hex_tile.to_pixel(board.layout).get_coords()
