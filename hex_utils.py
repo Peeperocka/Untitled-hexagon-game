@@ -100,17 +100,6 @@ class Hex:
             Hex(self.q, self.r + 1, self.s - 1),
         ]
 
-    def get_hexes_in_radius(self, n, hex_board):
-        results = []
-        for dq in range(-n, n + 1):
-            for dr in range(max(-n, -dq - n), min(n, -dq + n) + 1):
-                ds = -dq - dr
-                neighbor_coords = Hex(self.q + dq, self.r + dr, self.s + ds)
-                tile = hex_board.get_tile_by_hex(neighbor_coords)
-                if tile:
-                    results.append(tile)
-        return results
-
 
 def cube_distance(hex1, hex2):
     return max(abs(hex1.q - hex2.q), abs(hex1.r - hex2.r), abs(hex1.s - hex2.s))
