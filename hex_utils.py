@@ -1,5 +1,6 @@
 import collections
 import math
+from terrains import GrassTerrain
 
 
 class Point:
@@ -12,7 +13,7 @@ class Point:
 
 
 class Hex:
-    def __init__(self, q, r, s, terrain=None, resource=None, unit=None):
+    def __init__(self, q, r, s, terrain=GrassTerrain, resource=None, unit=None):
         if round(q + r + s) != 0:  # сумма векторов должна быть равна 0
             raise ValueError("q + r + s must be 0")
 

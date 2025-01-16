@@ -37,6 +37,8 @@ class GameManager:
         self.player_1_units = pygame.sprite.Group()
         self.player_2_units = pygame.sprite.Group()
 
+        self.players_to_remove = []
+
         self.selecting_unit_state = SelectingUnitState(self, board, camera, ui_manager, unit_info_text)
         self.unit_selected_state = UnitSelectedState(self, board, camera, ui_manager, unit_info_text)
         self.current_state = self.selecting_unit_state
@@ -104,20 +106,25 @@ class GameManager:
         if self.selected_unit:
             self.unit_info_text.html_text = self.selected_unit.get_unit_info_text()
             self.unit_info_text.rebuild()
-            self.board.enemy_reachable_hexes = []
-            self.board.enemy_attackable_hexes = []
-            for other_unit in self.all_units:
-                if other_unit.player_id != self.selected_unit.player_id:
-                    distance = hex_utils.cube_distance(self.selected_unit.hex_tile, other_unit.hex_tile)
-                    if distance <= self.selected_unit.current_movement_range:
-                        self.board.enemy_reachable_hexes.append(other_unit)
-                    if distance <= self.selected_unit.attack_range:
-                        self.board.enemy_attackable_hexes.append(other_unit)
+            self.board.reachable_enemy_hexes = self.board.get_reachable_tiles(self.selected_unit,
+                                                                              self.selected_unit.current_movement_range + 1,
+                                                                              True)
+            for hex in self.board.reachable_enemy_hexes.copy():
+                if hex.unit is None or hex.unit == self.selected_unit or hex.unit.player == self.get_current_player():
+                    self.board.reachable_enemy_hexes.remove(hex)
+
+            self.board.attackable_enemy_hexes = self.board.get_hexes_in_radius(self.selected_unit.hex_tile,
+                                                                               self.selected_unit.attack_range)
+
+            for hex in self.board.attackable_enemy_hexes.copy():
+                if hex.unit is None or hex.unit == self.selected_unit or hex.unit.player == self.get_current_player():
+                    self.board.attackable_enemy_hexes.remove(hex)
+
         else:
             self.unit_info_text.html_text = "Select a unit to see information."
             self.unit_info_text.rebuild()
-            self.board.enemy_reachable_hexes = []
-            self.board.enemy_attackable_hexes = []
+            self.board.reachable_enemy_hexes = []
+            self.board.attackable_enemy_hexes = []
 
 
 class GameState:
@@ -145,23 +152,23 @@ class SelectingUnitState(GameState):
             self.game_manager.current_state = self.game_manager.unit_selected_state
             self.game_manager.update_ui_for_selected_unit()
             self.board.selected_tile = clicked_tile
-            self.board.highlighted_hexes = list(self.board.get_reachable_tiles(clicked_tile.unit))
+            self.board.highlighted_hexes = self.board.get_reachable_tiles(clicked_tile.unit)
         elif clicked_tile.unit:
             self.game_manager.selected_unit = None
             self.board.selected_tile = clicked_tile
             self.board.path_to_target = []
             self.unit_info_text.html_text = clicked_tile.unit.get_enemy_unit_info_text()
             self.unit_info_text.rebuild()
-            self.board.enemy_reachable_hexes = []
-            self.board.enemy_attackable_hexes = []
+            self.board.reachable_enemy_hexes = []
+            self.board.attackable_enemy_hexes = []
         else:
             self.game_manager.selected_unit = None
             self.board.selected_tile = clicked_tile
             self.board.path_to_target = []
             self.unit_info_text.html_text = "Select a unit to see information."
             self.unit_info_text.rebuild()
-            self.board.enemy_reachable_hexes = []
-            self.board.enemy_attackable_hexes = []
+            self.board.reachable_enemy_hexes = []
+            self.board.attackable_enemy_hexes = []
             self.board.highlighted_hexes = []
 
 
@@ -181,8 +188,8 @@ class UnitSelectedState(GameState):
             self.board.path_to_target = []
             self.unit_info_text.html_text = "Select a unit to see information."
             self.unit_info_text.rebuild()
-            self.board.enemy_reachable_hexes = []
-            self.board.enemy_attackable_hexes = []
+            self.board.reachable_enemy_hexes = []
+            self.board.attackable_enemy_hexes = []
             self.board.highlighted_hexes = []
         elif clicked_tile.unit and clicked_tile.unit != selected_unit and clicked_tile.unit.player_id != selected_unit.player_id:
             if selected_unit.attack(clicked_tile.unit):
@@ -192,8 +199,8 @@ class UnitSelectedState(GameState):
                 self.board.path_to_target = []
                 self.unit_info_text.html_text = "Select a unit to see information."
                 self.unit_info_text.rebuild()
-                self.board.enemy_reachable_hexes = []
-                self.board.enemy_attackable_hexes = []
+                self.board.reachable_enemy_hexes = []
+                self.board.attackable_enemy_hexes = []
                 self.board.highlighted_hexes = []
         elif selected_unit.move_to(clicked_tile, self.board):
             self.game_manager.selected_unit = None
@@ -202,9 +209,9 @@ class UnitSelectedState(GameState):
             self.board.path_to_target = []
             self.unit_info_text.html_text = "Select a unit to see information."
             self.unit_info_text.rebuild()
-            self.board.enemy_reachable_hexes = []
-            self.board.enemy_attackable_hexes = []
+            self.board.reachable_enemy_hexes = []
+            self.board.attackable_enemy_hexes = []
             self.board.highlighted_hexes = []
         else:
             self.board.path_to_target = self.board.find_path(selected_unit.hex_tile,
-                                                             clicked_tile) if clicked_tile else []
+                                                             clicked_tile)[0] if clicked_tile else []

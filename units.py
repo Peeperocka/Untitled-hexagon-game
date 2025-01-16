@@ -151,9 +151,9 @@ class Unit(GameObject):
             print("Tile is occupied.")
             return False
 
-        path = board.find_path(self.hex_tile, target_tile)
+        path, movement_cost = board.find_path(self.hex_tile, target_tile)
+        print(path, movement_cost)
         if path:
-            movement_cost = len(path) - 1
             if movement_cost <= self.current_movement_range:
                 old_tile = self.hex_tile
                 old_tile.unit = None
@@ -209,4 +209,4 @@ class Unit(GameObject):
 class Warrior(Unit):
     def __init__(self, hex_tile, player, game_manager):
         super().__init__(hex_tile, "warrior.png", (70, 70), player, game_manager, damage=30, damage_spread=7, hp=100,
-                         movement_range=3, attack_range=1)
+                         movement_range=5, attack_range=1)

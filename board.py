@@ -1,6 +1,8 @@
 import pygame
-
 import hex_utils
+import random
+
+from terrains import (GrassTerrain, SandTerrain, MountainTerrain)
 
 
 class HexBoard:
@@ -34,8 +36,8 @@ class HexBoard:
         self._render_to_surface(self.map_surface)
         self.selected_tile = None
         self.highlighted_hexes = []
-        self.enemy_reachable_hexes = []
-        self.enemy_attackable_hexes = []
+        self.reachable_enemy_hexes = []
+        self.attackable_enemy_hexes = []
         self.path_to_target = []
 
     def _create_grid(self):
@@ -44,11 +46,17 @@ class HexBoard:
             min_q = -r // 2
             max_q = self.cols - r // 2
             row = []
-
             for q in range(min_q, max_q):
-                row.append(hex_utils.Hex(q, r, -q - r))
+                match random.randint(0, 2):
+                    case 0:
+                        terrain = GrassTerrain()
+                    case 1:
+                        terrain = SandTerrain()
+                    case 2:
+                        terrain = MountainTerrain()
+                hex_tile = hex_utils.Hex(q, r, -q - r, terrain)
+                row.append(hex_tile)
             grid.append(row)
-
         return grid
 
     def _create_map_surface(self):
@@ -86,7 +94,7 @@ class HexBoard:
                     continue
 
                 corners = hex_utils.polygon_corners(self.layout, tile)
-                pygame.draw.polygon(surface, self.colors['tile'], [(c.x, c.y) for c in corners], 0)
+                pygame.draw.polygon(surface, tile.terrain.color, [(c.x, c.y) for c in corners], 0)
                 pygame.draw.polygon(surface, self.colors['black'], [(c.x, c.y) for c in corners], 2)
 
                 # text_coords = f"{tile.q}, {tile.r}, {tile.s}"
@@ -122,7 +130,7 @@ class HexBoard:
 
     def find_path(self, start_tile, goal_tile):
         if not start_tile or not goal_tile:
-            return None
+            return None, None
 
         open_set = {start_tile}
         came_from = {}
@@ -133,14 +141,15 @@ class HexBoard:
             current = min(open_set, key=lambda tile: f_score.get(tile, float('inf')))
 
             if current == goal_tile:
-                return self._reconstruct_path(came_from, current)
+                path = self._reconstruct_path(came_from, current)
+                return path, g_score[goal_tile]
 
             open_set.remove(current)
 
             for neighbor_coords in current.get_neighbors():
                 neighbor = self.get_tile_by_hex(neighbor_coords)
                 if neighbor:
-                    temp_g_score = g_score[current] + 1
+                    temp_g_score = g_score[current] + neighbor.terrain.cost
 
                     if neighbor.unit is None or neighbor == goal_tile:
                         if temp_g_score < g_score.get(neighbor, float('inf')):
@@ -150,15 +159,14 @@ class HexBoard:
                             if neighbor not in open_set:
                                 open_set.add(neighbor)
 
-        return None
+        return None, None
 
     def _reconstruct_path(self, came_from, current):
         path = [current]
         while current in came_from:
             current = came_from[current]
             path.append(current)
-        path.reverse()
-        return path
+        return path[::-1]
 
     def render(self, screen, camera):
         screen.blit(self.map_surface, (-camera.x, -camera.y))
@@ -169,14 +177,14 @@ class HexBoard:
                 pygame.draw.polygon(screen, self.colors['highlight'],
                                     [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
 
-        for enemy_unit in self.enemy_attackable_hexes:
-            corners = hex_utils.polygon_corners(self.layout, enemy_unit.hex_tile)
+        for hex_tile in self.attackable_enemy_hexes:
+            corners = hex_utils.polygon_corners(self.layout, hex_tile)
             pygame.draw.polygon(screen, self.colors['enemy_attackable'],
                                 [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
 
-        for enemy_unit in self.enemy_reachable_hexes:
-            if enemy_unit not in self.enemy_attackable_hexes:
-                corners = hex_utils.polygon_corners(self.layout, enemy_unit.hex_tile)
+        for hex_tile in self.reachable_enemy_hexes:
+            if hex_tile not in self.attackable_enemy_hexes:
+                corners = hex_utils.polygon_corners(self.layout, hex_tile)
                 pygame.draw.polygon(screen, self.colors['enemy_reachable'],
                                     [(c.x - camera.x, c.y - camera.y) for c in corners], 3)
 
@@ -205,20 +213,40 @@ class HexBoard:
 
         return visible_entities
 
-    def get_reachable_tiles(self, unit):
+    def get_reachable_tiles(self, unit, movement_range=None, include_occupied=False):
         reachable = set()
-        queue = [(unit.hex_tile, unit.current_movement_range)]
-        visited = {unit.hex_tile}
+        initial_movement = movement_range if movement_range is not None else unit.current_movement_range
+        queue = [(unit.hex_tile, initial_movement)]
+        visited = {unit.hex_tile: initial_movement}
 
         while queue:
             current_tile, remaining_movement = queue.pop(0)
             reachable.add(current_tile)
 
-            if remaining_movement > 0:
-                for neighbor_coords in current_tile.get_neighbors():
-                    neighbor_tile = self.get_tile_by_hex(neighbor_coords)
-                    if neighbor_tile and neighbor_tile not in visited and neighbor_tile.unit is None:
-                        visited.add(neighbor_tile)
-                        queue.append((neighbor_tile, remaining_movement - 1))
+            for neighbor_coords in current_tile.get_neighbors():
+                neighbor_tile = self.get_tile_by_hex(neighbor_coords)
+                can_move_to_neighbor = True
+                if not include_occupied and neighbor_tile and neighbor_tile.unit is not None:
+                    can_move_to_neighbor = False
+
+                if neighbor_tile and can_move_to_neighbor:
+                    move_cost = neighbor_tile.terrain.cost
+                    new_remaining_movement = remaining_movement - move_cost
+
+                    if new_remaining_movement >= 0 and (
+                            neighbor_tile not in visited or new_remaining_movement > visited[neighbor_tile]):
+                        visited[neighbor_tile] = new_remaining_movement
+                        queue.append((neighbor_tile, new_remaining_movement))
 
         return reachable
+
+    def get_hexes_in_radius(self, center_hex: hex_utils.Hex, radius: int) -> list[hex_utils.Hex]:
+        results = []
+        for dq in range(-radius, radius + 1):
+            for dr in range(max(-radius, -dq - radius), min(radius, -dq + radius) + 1):
+                ds = -dq - dr
+                neighbor_coords = hex_utils.Hex(center_hex.q + dq, center_hex.r + dr, center_hex.s + ds)
+                tile = self.get_tile_by_hex(neighbor_coords)
+                if tile:
+                    results.append(tile)
+        return results
