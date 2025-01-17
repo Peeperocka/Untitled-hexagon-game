@@ -6,7 +6,7 @@ import hex_utils
 from board import HexBoard
 from camera import Camera
 from game_core import Player, GameManager
-from units import Warrior
+from units import Warrior, Cavalry, Archer, Crossbowman
 from ui import HUDManager
 
 
@@ -63,14 +63,14 @@ if __name__ == '__main__':
     military_objects = game_manager.military
 
     player1_data = [
-        (Warrior, (0, 0, 0)),
-        (Warrior, (-1, 1, 0)),
-        (Warrior, (-1, 2, -1)),
+        (Cavalry, (0, 0, 0)),
+        (Archer, (-1, 1, 0)),
+        (Crossbowman, (-1, 2, -1)),
     ]
     player2_data = [
-        (Warrior, (3, 0, -3)),
-        (Warrior, (3, 1, -4)),
-        (Warrior, (2, 2, -4)),
+        (Cavalry, (3, 0, -3)),
+        (Archer, (3, 1, -4)),
+        (Crossbowman, (2, 2, -4)),
     ]
     place_units_for_testing(board, player1, player2, player1_data, player2_data)
 
