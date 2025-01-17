@@ -210,9 +210,7 @@ class HexBoard:
     def get_reachable_tiles(self, unit, movement_range=None, include_occupied=False, allowed_extra_steps=0):
         reachable = set()
         initial_movement = movement_range if movement_range is not None else unit.current_movement_range
-        # Queue stores (tile, remaining_movement, remaining_extra_steps)
         queue = [(unit.hex_tile, initial_movement, allowed_extra_steps)]
-        # Visited stores (tile, remaining_movement, remaining_extra_steps)
         visited = {(unit.hex_tile, initial_movement, allowed_extra_steps)}
 
         while queue:
@@ -228,17 +226,14 @@ class HexBoard:
                 if neighbor_tile and can_move_to_neighbor:
                     move_cost = neighbor_tile.terrain.cost
 
-                    # 1. Normal movement
                     if remaining_movement > 0:
                         new_remaining_movement = remaining_movement - move_cost
                         if new_remaining_movement >= 0 and (
-                        neighbor_tile, new_remaining_movement, remaining_extra_steps) not in visited:
+                                neighbor_tile, new_remaining_movement, remaining_extra_steps) not in visited:
                             visited.add((neighbor_tile, new_remaining_movement, remaining_extra_steps))
                             queue.append((neighbor_tile, new_remaining_movement, remaining_extra_steps))
 
-                    # 2. Extra step (only if allowed and haven't exhausted them)
                     if remaining_extra_steps > 0:
-                        # Не применяем стоимость к дополнительному шагу
                         if (neighbor_tile, 0, remaining_extra_steps - 1) not in visited:
                             visited.add((neighbor_tile, 0, remaining_extra_steps - 1))
                             queue.append((neighbor_tile, 0, remaining_extra_steps - 1))

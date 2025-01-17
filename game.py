@@ -7,6 +7,7 @@ from board import HexBoard
 from camera import Camera
 from game_core import Player, GameManager
 from units import Warrior
+from ui import HUDManager
 
 
 def place_units_for_testing(board, player1, player2, player1_units_data, player2_units_data):
@@ -37,23 +38,11 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Hex Game")
 
-    ui_manager = pygame_gui.UIManager((WIDTH, HEIGHT))
     camera = Camera(WIDTH, HEIGHT, 20)
 
-    unit_info_panel = pygame_gui.elements.UIPanel(
-        relative_rect=pygame.Rect((WIDTH - 300, HEIGHT - 200), (280, 180)),
-        manager=ui_manager,
-        object_id=pygame_gui.core.ObjectID(class_id="@unit_info_panel")
-    )
-
-    unit_info_text = pygame_gui.elements.UITextBox(
-        relative_rect=pygame.Rect((10, 10), (260, 160)),
-        html_text="Select a unit to see information.",
-        manager=ui_manager,
-        container=unit_info_panel
-    )
-
     font = pygame.font.Font(None, 20)
+
+    hud_manager = HUDManager(WIDTH, HEIGHT, font)
 
     clock = pygame.time.Clock()
 
@@ -64,7 +53,7 @@ if __name__ == '__main__':
     player2 = Player(2)
     players = [player1, player2]
 
-    game_manager = GameManager(players, board, camera, ui_manager, unit_info_text)
+    game_manager = GameManager(players, board, camera, hud_manager)
     board.game_manager = game_manager
 
     all_sprites = game_manager.all_sprites
@@ -98,6 +87,8 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 running = False
 
+            hud_manager.process_event(event)
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     game_manager.next_player()
@@ -105,8 +96,6 @@ if __name__ == '__main__':
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     game_manager.process_mouse_click(event.pos)
-
-            ui_manager.process_events(event)
 
         keys = pygame.key.get_pressed()
 
@@ -119,7 +108,7 @@ if __name__ == '__main__':
         if keys[pygame.K_s]:
             camera.y += camera.speed
 
-        ui_manager.update(time_delta)
+        hud_manager.update(time_delta)
 
         screen.fill(board.colors['background'])
         board.render(screen, camera)
@@ -128,7 +117,7 @@ if __name__ == '__main__':
             sprite.update()
             sprite.render(screen, camera)
 
-        ui_manager.draw_ui(screen)
+        hud_manager.draw(screen)
 
         pygame.display.flip()
 

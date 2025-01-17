@@ -1,11 +1,3 @@
-import cProfile
-import pstats
-
-import pygame
-import pygame_gui
-
-from board import HexBoard
-from camera import Camera
 from units import *
 
 
@@ -21,14 +13,14 @@ class Player:
 
 
 class GameManager:
-    def __init__(self, players, board, camera, ui_manager, unit_info_text):
+    def __init__(self, players, board, camera, hud_manager):
         self.players = list(players)
         self.current_player_index = 0
         self.current_round = 1
         self.board = board
         self.camera = camera
-        self.ui_manager = ui_manager
-        self.unit_info_text = unit_info_text
+        self.hud_manager = hud_manager
+        self.ui_manager = self.hud_manager.ui_manager
         self.selected_unit = None
 
         self.all_sprites = pygame.sprite.Group()
@@ -39,8 +31,10 @@ class GameManager:
 
         self.players_to_remove = []
 
-        self.selecting_unit_state = SelectingUnitState(self, board, camera, ui_manager, unit_info_text)
-        self.unit_selected_state = UnitSelectedState(self, board, camera, ui_manager, unit_info_text)
+        self.selecting_unit_state = SelectingUnitState(self, board, camera, self.ui_manager,
+                                                       self.hud_manager.elements['unit_info_text'])
+        self.unit_selected_state = UnitSelectedState(self, board, camera, self.ui_manager,
+                                                     self.hud_manager.elements['unit_info_text'])
         self.current_state = self.selecting_unit_state
         self.game_over = False
 
@@ -104,12 +98,12 @@ class GameManager:
 
     def update_ui_for_selected_unit(self):
         if self.selected_unit:
-            self.unit_info_text.html_text = self.selected_unit.get_unit_info_text()
-            self.unit_info_text.rebuild()
+            self.hud_manager.elements['unit_info_text'].html_text = self.selected_unit.get_unit_info_text()
+            self.hud_manager.elements['unit_info_text'].rebuild()
             self.board.reachable_enemy_hexes = self.board.get_reachable_tiles(
                 self.selected_unit,
                 self.selected_unit.current_movement_range,
-                True, 1)
+                True, True)
             for hex in self.board.reachable_enemy_hexes.copy():
                 if hex.unit is None or hex.unit == self.selected_unit or hex.unit.player == self.get_current_player():
                     self.board.reachable_enemy_hexes.remove(hex)
@@ -122,8 +116,8 @@ class GameManager:
                     self.board.attackable_enemy_hexes.remove(hex)
 
         else:
-            self.unit_info_text.html_text = "Select a unit to see information."
-            self.unit_info_text.rebuild()
+            self.hud_manager.elements['unit_info_text'].html_text = "Select a unit to see information."
+            self.hud_manager.elements['unit_info_text'].rebuild()
             self.board.reachable_enemy_hexes = []
             self.board.attackable_enemy_hexes = []
 
@@ -193,7 +187,7 @@ class UnitSelectedState(GameState):
             self.board.attackable_enemy_hexes = []
             self.board.highlighted_hexes = []
         elif clicked_tile.unit and clicked_tile.unit != selected_unit and clicked_tile.unit.player_id != selected_unit.player_id:
-            if selected_unit.attack(clicked_tile.unit):
+            if selected_unit.attack(clicked_tile.unit, pos):
                 self.game_manager.selected_unit = None
                 self.game_manager.current_state = self.game_manager.selecting_unit_state
                 self.board.selected_tile = None
@@ -203,7 +197,7 @@ class UnitSelectedState(GameState):
                 self.board.reachable_enemy_hexes = []
                 self.board.attackable_enemy_hexes = []
                 self.board.highlighted_hexes = []
-        elif selected_unit.move_to(clicked_tile, self.board):
+        elif selected_unit.move_to(clicked_tile, self.board, pos):
             self.game_manager.selected_unit = None
             self.game_manager.current_state = self.game_manager.selecting_unit_state
             self.board.selected_tile = None

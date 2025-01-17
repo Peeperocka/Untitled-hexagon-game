@@ -123,8 +123,10 @@ class Unit(GameObject):
 
         super().kill()
 
-    def attack(self, target_unit):
+    def attack(self, target_unit, mouse_pos):
         if not self.can_attack:
+            text = 'Unit has already attacked this round.'
+            self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(f"{self} has already attacked this round.")
             return False
         if not isinstance(target_unit, Unit):
@@ -142,13 +144,17 @@ class Unit(GameObject):
         self.current_movement_range = 0
         return True
 
-    def move_to(self, target_tile, board):
+    def move_to(self, target_tile, board, mouse_pos):
         if target_tile == self.hex_tile:
-            print("Already on this tile.")
+            text = "Already on this tile."
+            self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
+            print(text)
             return False
 
         if target_tile.unit is not None:
-            print("Tile is occupied.")
+            text = "Tile is occupied."
+            self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
+            print(text)
             return False
 
         path, movement_cost = board.find_path(self.hex_tile, target_tile)
@@ -163,11 +169,15 @@ class Unit(GameObject):
                     f"Unit moved to: q={self.hex_tile.q}, r={self.hex_tile.r}, s={self.hex_tile.s}. Remaining movement: {self.current_movement_range}")
                 return True
             else:
-                print(
-                    f"Not enough movement range to reach the target. Remaining: {self.current_movement_range}, needed: {movement_cost}")
+                text = (f"Not enough movement range to reach the target.\n"
+                        f"Remaining: {self.current_movement_range}, needed: {movement_cost}")
+                self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
+                print(text)
                 return False
         else:
-            print("Target tile is unreachable.")
+            text = "Target tile is unreachable."
+            self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
+            print(text)
             return False
 
     def on_round_end(self):
