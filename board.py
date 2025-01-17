@@ -47,13 +47,7 @@ class HexBoard:
             max_q = self.cols - r // 2
             row = []
             for q in range(min_q, max_q):
-                match random.randint(0, 2):
-                    case 0:
-                        terrain = GrassTerrain()
-                    case 1:
-                        terrain = SandTerrain()
-                    case 2:
-                        terrain = MountainTerrain()
+                terrain = random.choice((GrassTerrain, SandTerrain, MountainTerrain))()
                 hex_tile = hex_utils.Hex(q, r, -q - r, terrain)
                 row.append(hex_tile)
             grid.append(row)
@@ -213,14 +207,16 @@ class HexBoard:
 
         return visible_entities
 
-    def get_reachable_tiles(self, unit, movement_range=None, include_occupied=False):
+    def get_reachable_tiles(self, unit, movement_range=None, include_occupied=False, allowed_extra_steps=0):
         reachable = set()
         initial_movement = movement_range if movement_range is not None else unit.current_movement_range
-        queue = [(unit.hex_tile, initial_movement)]
-        visited = {unit.hex_tile: initial_movement}
+        # Queue stores (tile, remaining_movement, remaining_extra_steps)
+        queue = [(unit.hex_tile, initial_movement, allowed_extra_steps)]
+        # Visited stores (tile, remaining_movement, remaining_extra_steps)
+        visited = {(unit.hex_tile, initial_movement, allowed_extra_steps)}
 
         while queue:
-            current_tile, remaining_movement = queue.pop(0)
+            current_tile, remaining_movement, remaining_extra_steps = queue.pop(0)
             reachable.add(current_tile)
 
             for neighbor_coords in current_tile.get_neighbors():
@@ -231,12 +227,21 @@ class HexBoard:
 
                 if neighbor_tile and can_move_to_neighbor:
                     move_cost = neighbor_tile.terrain.cost
-                    new_remaining_movement = remaining_movement - move_cost
 
-                    if new_remaining_movement >= 0 and (
-                            neighbor_tile not in visited or new_remaining_movement > visited[neighbor_tile]):
-                        visited[neighbor_tile] = new_remaining_movement
-                        queue.append((neighbor_tile, new_remaining_movement))
+                    # 1. Normal movement
+                    if remaining_movement > 0:
+                        new_remaining_movement = remaining_movement - move_cost
+                        if new_remaining_movement >= 0 and (
+                        neighbor_tile, new_remaining_movement, remaining_extra_steps) not in visited:
+                            visited.add((neighbor_tile, new_remaining_movement, remaining_extra_steps))
+                            queue.append((neighbor_tile, new_remaining_movement, remaining_extra_steps))
+
+                    # 2. Extra step (only if allowed and haven't exhausted them)
+                    if remaining_extra_steps > 0:
+                        # Не применяем стоимость к дополнительному шагу
+                        if (neighbor_tile, 0, remaining_extra_steps - 1) not in visited:
+                            visited.add((neighbor_tile, 0, remaining_extra_steps - 1))
+                            queue.append((neighbor_tile, 0, remaining_extra_steps - 1))
 
         return reachable
 

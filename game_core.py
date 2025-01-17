@@ -106,9 +106,10 @@ class GameManager:
         if self.selected_unit:
             self.unit_info_text.html_text = self.selected_unit.get_unit_info_text()
             self.unit_info_text.rebuild()
-            self.board.reachable_enemy_hexes = self.board.get_reachable_tiles(self.selected_unit,
-                                                                              self.selected_unit.current_movement_range + 1,
-                                                                              True)
+            self.board.reachable_enemy_hexes = self.board.get_reachable_tiles(
+                self.selected_unit,
+                self.selected_unit.current_movement_range,
+                True, 1)
             for hex in self.board.reachable_enemy_hexes.copy():
                 if hex.unit is None or hex.unit == self.selected_unit or hex.unit.player == self.get_current_player():
                     self.board.reachable_enemy_hexes.remove(hex)
