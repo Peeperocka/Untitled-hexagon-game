@@ -1,7 +1,6 @@
 import cProfile
 import pstats
 import pygame
-import pygame_gui
 import hex_utils
 from board import HexBoard
 from camera import Camera
@@ -29,8 +28,9 @@ def place_units_for_testing(board, player1, player2, player1_units_data, player2
         else:
             print(f"Could not place unit {unit_type} at {hex_coords} for Player 2.")
 
+def main_gamer():
+    global game_manager
 
-if __name__ == '__main__':
     pygame.init()
 
     FPS = 60
@@ -52,7 +52,6 @@ if __name__ == '__main__':
     player1 = Player(1)
     player2 = Player(2)
     players = [player1, player2]
-
     game_manager = GameManager(players, board, camera, hud_manager)
     board.game_manager = game_manager
 
@@ -68,9 +67,9 @@ if __name__ == '__main__':
         (Crossbowman, (-1, 2, -1)),
     ]
     player2_data = [
-        (Cavalry, (3, 0, -3)),
-        (Archer, (3, 1, -4)),
-        (Crossbowman, (2, 2, -4)),
+        (Warrior, (3, 0, -3)),
+        (Warrior, (3, 1, -4)),
+        (Warrior, (2, 2, -4)),
     ]
     place_units_for_testing(board, player1, player2, player1_data, player2_data)
 
@@ -126,3 +125,6 @@ if __name__ == '__main__':
     stats.sort_stats('tottime').print_stats(20)
 
     pygame.quit()
+
+if __name__ == '__main__':
+    main_game_loop()
