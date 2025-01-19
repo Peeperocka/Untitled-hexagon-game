@@ -127,4 +127,4 @@ def main_gamer():
     pygame.quit()
 
 if __name__ == '__main__':
-    main_game_loop()
+    main_gamer()
