@@ -1,12 +1,12 @@
 import cProfile
 import pstats
 import pygame
-import hex_utils
-from board import HexBoard
-from camera import Camera
-from game_core import Player, GameManager
-from units import Warrior, Cavalry, Archer, Crossbowman
-from ui import HUDManager
+from src.utils import hex_utils
+from src.board.board import HexBoard
+from src.camera.camera import Camera
+from src.game_core.game_core import Player, GameManager
+from src.entities.game.units import Warrior, Cavalry, Archer, Crossbowman
+from src.ui.hud.ui import HUDManager
 
 
 def place_units_for_testing(board, player1, player2, player1_units_data, player2_units_data):
@@ -28,7 +28,8 @@ def place_units_for_testing(board, player1, player2, player1_units_data, player2
         else:
             print(f"Could not place unit {unit_type} at {hex_coords} for Player 2.")
 
-def main_gamer():
+
+def main():
     global game_manager
 
     pygame.init()
@@ -126,5 +127,6 @@ def main_gamer():
 
     pygame.quit()
 
+
 if __name__ == '__main__':
-    main_gamer()
+    main()

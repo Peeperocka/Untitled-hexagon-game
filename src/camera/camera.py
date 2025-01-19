@@ -1,5 +1,5 @@
 import pygame
-import hex_utils
+from src.utils import hex_utils
 
 
 class Camera:

@@ -3,12 +3,15 @@ import sys
 import pygame
 
 
-def load_image(name, colorkey=None):
-    filename = os.path.join('data', name)
+def load_image(name, colorkey=None, subdir=None):
+    base_path = os.path.join('data', 'images')
+    if subdir:
+        filename = os.path.join(base_path, subdir, name)
+    else:
+        filename = os.path.join(base_path, name)
 
     if not os.path.isfile(filename):
-        print(f"Файл с изображением '{filename}' не найден")
-        sys.exit()
+        raise ValueError(f"Файл с изображением '{filename}' не найден")
 
     image = pygame.image.load(filename)
 

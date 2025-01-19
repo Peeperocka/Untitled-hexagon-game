@@ -1,6 +1,6 @@
 import collections
 import math
-from terrains import GrassTerrain
+from src.terrains.game.terrains import GrassTerrain
 
 
 class Point:

@@ -2,16 +2,16 @@ import random
 
 import pygame
 
-import hex_utils
-from utils import load_image
+from src.utils import hex_utils
+from src.utils.utils import load_image
 
 
 class GameObject(pygame.sprite.Sprite):
-    def __init__(self, hex_tile, image_path, size, game_manager):
+    def __init__(self, hex_tile, image, size, game_manager, image_subdir=None):
         super().__init__(game_manager.all_sprites)
         self.game_manager = game_manager
         self.hex_tile = hex_tile
-        self.image = pygame.transform.scale(load_image(image_path), size)
+        self.image = pygame.transform.scale(load_image(image, subdir=image_subdir), size)
         self.rect = self.image.get_rect()
         self.base_y = 0
         self.update_position(hex_tile)
@@ -28,9 +28,9 @@ class GameObject(pygame.sprite.Sprite):
 
 
 class Unit(GameObject):
-    def __init__(self, hex_tile, image_path, size, player, game_manager, damage, damage_spread, hp, movement_range,
+    def __init__(self, hex_tile, image, size, player, game_manager, damage, damage_spread, hp, movement_range,
                  attack_range):
-        super().__init__(hex_tile, image_path, size, game_manager)
+        super().__init__(hex_tile, image, size, game_manager, image_subdir='units')
         self.player = player
         game_manager.all_units.add(self)
         game_manager.military.add(self)
@@ -214,25 +214,3 @@ class Unit(GameObject):
     def render(self, surface, camera):
         super().render(surface, camera)
         self.draw_health_bar(surface, camera)
-
-
-class Warrior(Unit):
-    def __init__(self, hex_tile, player, game_manager):
-        super().__init__(hex_tile, "warrior.png", (70, 70), player, game_manager, damage=30, damage_spread=7, hp=100,
-                         movement_range=5, attack_range=1)
-class Cavalry(Unit):
-    def __init__(self, hex_tile, player, game_manager):
-        super().__init__(hex_tile, "cavalry.png", (70, 90), player, game_manager, damage=35, damage_spread=6, hp=90,
-                         movement_range=4, attack_range=2)
-
-
-class Archer(Unit):
-    def __init__(self, hex_tile, player, game_manager):
-        super().__init__(hex_tile, "archer.png", (80, 70), player, game_manager, damage=25, damage_spread=10, hp=70,
-                         movement_range=3, attack_range=5)
-
-
-class Crossbowman(Unit):
-    def __init__(self, hex_tile, player, game_manager):
-        super().__init__(hex_tile, "crossbowman.png", (50, 65), player, game_manager, damage=30, damage_spread=6, hp=75,
-                         movement_range=3, attack_range=6)

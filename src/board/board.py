@@ -1,8 +1,8 @@
 import pygame
-import hex_utils
+from src.utils import hex_utils
 import random
 
-from terrains import (GrassTerrain, SandTerrain, MountainTerrain)
+from src.terrains.game.terrains import (GrassTerrain, SandTerrain, MountainTerrain)
 
 
 class HexBoard:
