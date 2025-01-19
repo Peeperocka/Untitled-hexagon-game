@@ -1,0 +1,66 @@
+import pygame
+import pygame_gui
+from game import main_gamer
+
+
+class MainMenu:
+    def __init__(self, screen):
+        self.screen = screen
+        self.man = pygame_gui.UIManager((1000, 800))
+        self.screen.fill((30, 30, 30))
+
+        self.quit_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect(400, 400, 200, 50),
+            text='Выход',
+            manager=self.man
+        )
+
+        self.start_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect(400, 300, 200, 50),
+            text='Начать игру',
+            manager=self.man
+        )
+
+
+        self.clock = pygame.time.Clock()
+        self.running = True
+
+    def run(self):
+        while self.running:
+            timer = self.clock.tick(60) / 1000.0
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+
+                self.man.process_events(event)
+
+                if event.type == pygame.USEREVENT:
+                    if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                        if event.ui_element == self.start_button:
+                            main_gamer()
+                        elif event.ui_element == self.quit_button:
+                            self.running = False
+
+
+
+            self.man.draw_ui(self.screen)
+            self.man.update(timer)
+
+
+            pygame.display.flip()
+
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((1000, 800))
+    pygame.display.set_caption("Hex Game - Главное меню")
+
+    main_menu = MainMenu(screen)
+    main_menu.run()
+
+    pygame.quit()
+
+
+if __name__ == '__main__':
+    main()
