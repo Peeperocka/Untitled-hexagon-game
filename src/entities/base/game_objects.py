@@ -7,7 +7,7 @@ from src.utils.utils import load_image
 
 
 class GameObject(pygame.sprite.Sprite):
-    def __init__(self, hex_tile, image, size, game_manager, image_subdir=None):
+    def __init__(self, hex_tile, image, size, game_manager, player, image_subdir=None):
         super().__init__(game_manager.all_sprites)
         self.game_manager = game_manager
         self.hex_tile = hex_tile
@@ -15,6 +15,9 @@ class GameObject(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.base_y = 0
         self.update_position(hex_tile)
+        self.player = player
+        self.player.all_objects.add(self)
+        self.player.military.add(self)
 
     def update_position(self, hex_tile):
         self.hex_tile = hex_tile
@@ -30,10 +33,9 @@ class GameObject(pygame.sprite.Sprite):
 class Unit(GameObject):
     def __init__(self, hex_tile, image, size, player, game_manager, damage, damage_spread, hp, movement_range,
                  attack_range):
-        super().__init__(hex_tile, image, size, game_manager, image_subdir='units')
+        super().__init__(hex_tile, image, size, game_manager, player, image_subdir='units')
         self.player = player
         game_manager.all_units.add(self)
-        game_manager.military.add(self)
         if player.player_id == 1:
             game_manager.player_1_units.add(self)
         elif player.player_id == 2:

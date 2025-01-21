@@ -1,4 +1,4 @@
-from src.entities.base.units import Unit
+from src.entities.base.game_objects import Unit
 
 
 class Warrior(Unit):

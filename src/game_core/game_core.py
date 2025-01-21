@@ -10,6 +10,8 @@ class Player:
         self.all_objects = pygame.sprite.Group()
         self.military = pygame.sprite.Group()
 
+        self.money = 0
+
     def __str__(self):
         return f"Player {self.player_id}"
 
@@ -33,10 +35,8 @@ class GameManager:
 
         self.players_to_remove = []
 
-        self.selecting_unit_state = SelectingUnitState(self, board, camera, self.ui_manager,
-                                                       self.hud_manager.elements['unit_info_text'])
-        self.unit_selected_state = UnitSelectedState(self, board, camera, self.ui_manager,
-                                                     self.hud_manager.elements['unit_info_text'])
+        self.selecting_unit_state = SelectingUnitState(self, board, camera, self.hud_manager)
+        self.unit_selected_state = UnitSelectedState(self, board, camera, self.hud_manager)
         self.current_state = self.selecting_unit_state
         self.game_over = False
 
