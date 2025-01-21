@@ -250,3 +250,10 @@ class HexBoard:
                 if tile:
                     results.append(tile)
         return results
+
+    def clear_selected_tile(self):
+        self.highlighted_hexes = []
+        self.reachable_enemy_hexes = []
+        self.attackable_enemy_hexes = []
+        self.path_to_target = []
+        self.selected_tile = None

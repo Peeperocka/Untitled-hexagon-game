@@ -88,10 +88,14 @@ def main():
                 running = False
 
             hud_manager.process_event(event)
+            if hud_manager.is_paused:
+                continue
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     game_manager.next_player()
+                if event.key == pygame.K_ESCAPE:
+                    game_manager.deselect_unit()
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
@@ -108,13 +112,17 @@ def main():
         if keys[pygame.K_s]:
             camera.y += camera.speed
 
-        hud_manager.update(time_delta)
+        if not hud_manager.is_paused:
+            for sprite in all_sprites:
+                sprite.update()
+            hud_manager.update(time_delta)
+        else:
+            hud_manager.update(time_delta)  # Still update UI while paused
 
         screen.fill(board.colors['background'])
         board.render(screen, camera)
 
         for sprite in all_sprites:
-            sprite.update()
             sprite.render(screen, camera)
 
         hud_manager.draw(screen)

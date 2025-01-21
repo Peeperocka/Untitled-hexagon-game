@@ -122,3 +122,11 @@ class GameManager:
             self.hud_manager.elements['unit_info_text'].rebuild()
             self.board.reachable_enemy_hexes = []
             self.board.attackable_enemy_hexes = []
+
+    def deselect_unit(self):
+        if self.selected_unit:
+            self.selected_unit.selected = False
+            self.selected_unit = None
+            self.board.clear_selected_tile()
+            self.update_ui_for_selected_unit()
+            self.current_state = self.selecting_unit_state
