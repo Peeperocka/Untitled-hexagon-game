@@ -1,12 +1,26 @@
 import cProfile
 import pstats
 import pygame
+import pygame_gui
 from src.utils import hex_utils
 from src.board.board import HexBoard
 from src.camera.camera import Camera
 from src.game_core.game_core import Player, GameManager
 from src.entities.game.units import Warrior, Cavalry, Archer, Crossbowman
 from src.ui.hud.ui import HUDManager
+from src.ui.windows.main_menu import MainMenu
+
+all_sprites = pygame.sprite.Group()
+all_units = pygame.sprite.Group()
+player_1_units = pygame.sprite.Group()
+player_2_units = pygame.sprite.Group()
+military_objects = pygame.sprite.Group()
+game_manager = None
+hud_manager = None
+camera = None
+board = None
+player1 = None
+player2 = None
 
 
 def place_units_for_testing(board, player1, player2, player1_units_data, player2_units_data):
@@ -29,27 +43,18 @@ def place_units_for_testing(board, player1, player2, player1_units_data, player2
             print(f"Could not place unit {unit_type} at {hex_coords} for Player 2.")
 
 
-def main():
-    global game_manager
-
-    pygame.init()
+def main_gamer(screen, width, height):
+    global game_manager, hud_manager, camera, board, player1, player2, all_sprites, all_units, player_1_units, player_2_units, military_objects
 
     FPS = 60
-    WIDTH, HEIGHT = 1000, 800
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Hex Game")
 
-    camera = Camera(WIDTH, HEIGHT, 20)
-
+    camera = Camera(width, height, 20)
     font = pygame.font.Font(None, 20)
-
-    hud_manager = HUDManager(WIDTH, HEIGHT, font)
-
+    hud_manager = HUDManager(width, height, font)
     clock = pygame.time.Clock()
 
-    running = True
     board = HexBoard(20, 20, 50)
-
     player1 = Player(1)
     player2 = Player(2)
     players = [player1, player2]
@@ -77,8 +82,7 @@ def main():
     profiler = cProfile.Profile()
     profiler.enable()
 
-    selected_unit = None
-
+    running = True
     print(f"It's {game_manager.get_current_player()}'s turn.")
 
     while running:
@@ -117,7 +121,7 @@ def main():
                 sprite.update()
             hud_manager.update(time_delta)
         else:
-            hud_manager.update(time_delta)  # Still update UI while paused
+            hud_manager.update(time_delta)
 
         screen.fill(board.colors['background'])
         board.render(screen, camera)
@@ -132,6 +136,25 @@ def main():
     profiler.disable()
     stats = pstats.Stats(profiler)
     stats.sort_stats('tottime').print_stats(20)
+    return False
+
+
+def main():
+    pygame.init()
+    width, height = 1000, 800
+    screen = pygame.display.set_mode((width, height))
+    pygame.display.set_caption("Hex Game")
+
+    manager = pygame_gui.UIManager((width, height))
+    main_menu = MainMenu(screen, manager)
+    running = True
+
+    while running:
+        if main_menu.run():
+            manager.clear_and_reset()
+            running = main_gamer(screen, width, height)
+        else:
+            running = False
 
     pygame.quit()
 

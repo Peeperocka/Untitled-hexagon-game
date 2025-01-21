@@ -19,7 +19,7 @@ class HUDManager:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.dim_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
-        self.dim_surface.fill((0, 0, 0, 128))  # Black with 50% transparency
+        self.dim_surface.fill((0, 0, 0, 128))
 
     def _create_default_elements(self, screen_width, screen_height):
         unit_info_panel = pygame_gui.elements.UIPanel(

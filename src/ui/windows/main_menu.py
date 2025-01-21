@@ -1,66 +1,50 @@
 import pygame
 import pygame_gui
-from game import main_gamer
 
 
 class MainMenu:
-    def __init__(self, screen):
+    def __init__(self, screen, manager):
         self.screen = screen
-        self.man = pygame_gui.UIManager((1000, 800))
-        self.screen.fill((30, 30, 30))
+        self.manager = manager
+        self.is_running = True
+        self.start_game_requested = False
 
         self.quit_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(400, 400, 200, 50),
             text='Выход',
-            manager=self.man
+            manager=self.manager
         )
 
         self.start_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(400, 300, 200, 50),
             text='Начать игру',
-            manager=self.man
+            manager=self.manager
         )
 
-
         self.clock = pygame.time.Clock()
-        self.running = True
 
     def run(self):
-        while self.running:
-            timer = self.clock.tick(60) / 1000.0
+        while self.is_running:
+            time_delta = self.clock.tick(60) / 1000.0
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.running = False
+                    self.is_running = False
 
-                self.man.process_events(event)
+                self.manager.process_events(event)
 
                 if event.type == pygame.USEREVENT:
                     if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                         if event.ui_element == self.start_button:
-                            main_gamer()
+                            self.start_game_requested = True
+                            self.is_running = False
                         elif event.ui_element == self.quit_button:
-                            self.running = False
+                            self.is_running = False
 
-
-
-            self.man.draw_ui(self.screen)
-            self.man.update(timer)
-
+            self.manager.update(time_delta)
+            self.screen.fill((30, 30, 30))
+            self.manager.draw_ui(self.screen)
 
             pygame.display.flip()
 
-
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode((1000, 800))
-    pygame.display.set_caption("Hex Game - Главное меню")
-
-    main_menu = MainMenu(screen)
-    main_menu.run()
-
-    pygame.quit()
-
-
-if __name__ == '__main__':
-    main()
+        return self.start_game_requested
