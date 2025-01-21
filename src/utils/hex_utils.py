@@ -24,7 +24,7 @@ class Hex:
         self.resource = resource
         self.unit = unit
         self.owner = None
-        self.level_object = None
+        self.building = None
 
     def __add__(self, other):
         return Hex(self.q + other.q, self.r + other.r, self.s + other.s,

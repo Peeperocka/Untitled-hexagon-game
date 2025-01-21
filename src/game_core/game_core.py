@@ -1,6 +1,6 @@
 import pygame
 
-from src.game_core.states.states import SelectingUnitState, UnitSelectedState
+from src.game_core.states.states import SelectingUnitState, UnitSelectedState, BuildingSelectedState
 
 
 class Player:
@@ -9,6 +9,7 @@ class Player:
         self.units = pygame.sprite.Group()
         self.all_objects = pygame.sprite.Group()
         self.military = pygame.sprite.Group()
+        self.buildings = pygame.sprite.Group()
 
         self.money = 0
 
@@ -37,6 +38,8 @@ class GameManager:
 
         self.selecting_unit_state = SelectingUnitState(self, board, camera, self.hud_manager)
         self.unit_selected_state = UnitSelectedState(self, board, camera, self.hud_manager)
+        self.building_selected_state = BuildingSelectedState(self, board, camera, self.hud_manager)
+
         self.current_state = self.selecting_unit_state
         self.game_over = False
 
@@ -90,6 +93,9 @@ class GameManager:
         for player in self.players:
             for unit in player.units:
                 unit.on_round_end()
+            for building in player.buildings:
+                building.on_round_end()
+
         self.current_round += 1
         print(f"--- Starting Round {self.current_round} ---")
         print(f"It's {self.get_current_player()}'s turn.")
@@ -107,18 +113,56 @@ class GameManager:
                 self.selected_unit.current_movement_range,
                 True, True)
             for hex in self.board.reachable_enemy_hexes.copy():
-                if hex.unit is None or hex.unit == self.selected_unit or hex.unit.player == self.get_current_player():
+                if hex.unit and self.is_current_player(hex.unit.player):
                     self.board.reachable_enemy_hexes.remove(hex)
+                    continue
+                elif hex.building and self.is_current_player(hex.building.player):
+                    self.board.reachable_enemy_hexes.remove(hex)
+                    continue
+                elif not hex.unit and not hex.building:
+                    self.board.reachable_enemy_hexes.remove(hex)
+                    continue
 
             self.board.attackable_enemy_hexes = self.board.get_hexes_in_radius(self.selected_unit.hex_tile,
                                                                                self.selected_unit.attack_range)
 
             for hex in self.board.attackable_enemy_hexes.copy():
-                if hex.unit is None or hex.unit == self.selected_unit or hex.unit.player == self.get_current_player():
+                if hex.unit and self.is_current_player(hex.unit.player):
                     self.board.attackable_enemy_hexes.remove(hex)
+                    continue
+                elif hex.building and self.is_current_player(hex.building.player):
+                    self.board.attackable_enemy_hexes.remove(hex)
+                    continue
+                elif not hex.unit and not hex.building:
+                    self.board.attackable_enemy_hexes.remove(hex)
+                    continue
 
         else:
             self.hud_manager.elements['unit_info_text'].html_text = "Select a unit to see information."
+            self.hud_manager.elements['unit_info_text'].rebuild()
+            self.board.reachable_enemy_hexes = []
+            self.board.attackable_enemy_hexes = []
+
+    def update_ui_for_selected_building(self):
+        if self.selected_building:
+            self.hud_manager.elements['unit_info_text'].html_text = self.selected_building.get_unit_info_text()
+            self.hud_manager.elements['unit_info_text'].rebuild()
+
+            self.board.attackable_enemy_hexes = self.board.get_hexes_in_radius(
+                self.selected_building.hex_tile,
+                self.selected_building.attack_range
+            )
+
+            for hex in self.board.attackable_enemy_hexes.copy():
+                if hex.unit and self.is_current_player(hex.unit.player):
+                    self.board.attackable_enemy_hexes.remove(hex)
+                elif hex.building and self.is_current_player(hex.building.player):
+                    self.board.attackable_enemy_hexes.remove(hex)
+                elif not hex.unit and not hex.building:
+                    self.board.attackable_enemy_hexes.remove(hex)
+
+        else:
+            self.hud_manager.elements['unit_info_text'].html_text = "Select a unit or building to see information."
             self.hud_manager.elements['unit_info_text'].rebuild()
             self.board.reachable_enemy_hexes = []
             self.board.attackable_enemy_hexes = []

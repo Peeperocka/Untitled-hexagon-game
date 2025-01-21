@@ -2,6 +2,8 @@ import cProfile
 import pstats
 import pygame
 import pygame_gui
+
+from src.entities.game.level_objects import City
 from src.utils import hex_utils
 from src.board.board import HexBoard
 from src.camera.camera import Camera
@@ -25,6 +27,12 @@ player2 = None
 
 def place_units_for_testing(board, player1, player2, player1_units_data, player2_units_data):
     global all_sprites, all_units, player_1_units, player_2_units, military_objects
+    """(self, hex_tile, image="city.png", size=(50, 50), game_manager=None, player=None,
+                 health=100, attack=10, min_damage=5, max_damage=15, defense=5, image_subdir="buildings"):
+        super().__init__(hex_tile, image, size, game_manager, player, image_subdir=image_subdir)"""
+    city_tile = board.get_tile_by_hex(hex_utils.Hex(-1, 3, -2))
+    print(city_tile)
+    City(city_tile, game_manager=game_manager, player=player1)
 
     for unit_type, hex_coords in player1_units_data:
         tile = board.get_tile_by_hex(hex_utils.Hex(*hex_coords))

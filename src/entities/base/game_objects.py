@@ -17,7 +17,6 @@ class GameObject(pygame.sprite.Sprite):
         self.update_position(hex_tile)
         self.player = player
         self.player.all_objects.add(self)
-        self.player.military.add(self)
 
     def update_position(self, hex_tile):
         self.hex_tile = hex_tile
@@ -28,6 +27,19 @@ class GameObject(pygame.sprite.Sprite):
 
     def render(self, surface, camera):
         surface.blit(self.image, camera.apply(self.rect))
+
+
+class Building(GameObject):
+    def __init__(self, hex_tile, image, size, game_manager, player, image_subdir=None):
+        super().__init__(hex_tile, image, size, game_manager, player, image_subdir='level_objects')
+        self.player.buildings.add(self)
+
+    def update_position(self, hex_tile):
+        self.hex_tile = hex_tile
+        self.hex_tile.building = self
+        pixel_coords = self.hex_tile.to_pixel(self.game_manager.board.layout).get_coords()
+        self.rect.center = pixel_coords
+        self.base_y = self.rect.centery
 
 
 class Unit(GameObject):
@@ -131,12 +143,12 @@ class Unit(GameObject):
             self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(f"{self} has already attacked this round.")
             return False
-        if not isinstance(target_unit, Unit):
-            raise ValueError("Target must be an instance of Unit.")
 
         distance = hex_utils.cube_distance(self.hex_tile, target_unit.hex_tile)
         if distance > self.attack_range:
-            print(f"{target_unit} is out of attack range.")
+            text = f"Out of attack range."
+            self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
+            print(text)
             return False
 
         damage_dealt = max(0, self.damage + random.randint(-self.damage_spread, self.damage_spread))
