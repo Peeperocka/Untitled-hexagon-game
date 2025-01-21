@@ -1,6 +1,9 @@
+import sys
+
 import pygame
 import pygame_gui
 
+from src.ui.windows.city_window import UICityWindow
 from src.ui.windows.game_pause import PauseMenu
 
 
@@ -11,11 +14,13 @@ class HUDManager:
         self.ui_manager = pygame_gui.UIManager((screen_width, screen_height))
         self.dynamic_message_manager = DynamicMessageManager(self.font)
         self.elements = {}
+        self.city_window = None
+        self.is_paused = False
 
         self._create_default_elements(screen_width, screen_height)
         self._create_menu_button(screen_width, screen_height)
         self._create_pause_menu(screen_width, screen_height)
-        self.is_paused = False
+
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.dim_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
@@ -60,11 +65,10 @@ class HUDManager:
 
     def save_game(self):
         print("Saving the game")
-        # Implement your save game logic here
 
     def exit_game(self):
-        print("Exiting the game")
-        # Implement your exit game logic here
+        pygame.quit()
+        sys.exit()
 
     def process_event(self, event):
         self.ui_manager.process_events(event)
@@ -72,10 +76,15 @@ class HUDManager:
             self.elements['menu_button'].process_event(event)
         if self.is_paused:
             self.pause_menu.process_event(event)
+        if event.type == pygame_gui.UI_WINDOW_CLOSE:
+            if self.city_window is not None and event.ui_element == self.city_window:
+                self.close_city_window_internal()
 
     def update(self, time_delta):
         self.ui_manager.update(time_delta)
         self.dynamic_message_manager.update(time_delta)
+        if self.city_window is not None and self.city_window.visible:
+            self.city_window.update(time_delta)
 
     def draw(self, surface):
         if self.is_paused:
@@ -98,6 +107,30 @@ class HUDManager:
         if element_id in self.elements:
             self.elements[element_id].kill()
             del self.elements[element_id]
+
+    def open_city_window(self, city):
+        """Opens the city management window."""
+        if self.city_window is None:
+            self.city_window = UICityWindow(city, self.ui_manager)
+        else:
+            self.city_window.set_city(city)
+        self.city_window.show()
+        self.is_paused = True
+
+    def close_city_window(self):
+        """Closes the city management window."""
+        if self.city_window is not None:
+            self.city_window.hide()
+            self.update_is_paused_from_menus()
+
+    def close_city_window_internal(self):
+        """Internal method to close the city window and reset the attribute."""
+        self.close_city_window()
+        self.city_window = None
+
+    def update_is_paused_from_menus(self):
+        """Updates is_paused based on the visibility of both menus."""
+        self.is_paused = self.pause_menu.is_visible or (self.city_window is not None and self.city_window.visible)
 
 
 # noinspection PyTypeChecker

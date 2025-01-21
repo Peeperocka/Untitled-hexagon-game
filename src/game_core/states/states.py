@@ -1,3 +1,6 @@
+from src.entities.game.level_objects import City
+
+
 class GameState:
     def __init__(self, game_manager, board, camera, hud_manager):
         self.game_manager = game_manager
@@ -117,7 +120,7 @@ class BuildingSelectedState(GameState):
             if selected_building.attack_unit(clicked_tile.unit, pos):
                 self._reset_selection()
                 self.game_manager.current_state = self.game_manager.selecting_unit_state
-        elif clicked_tile.building and self.game_manager.is_enemy_player(clicked_tile.building.player):
+        elif clicked_tile.building and not self.game_manager.is_current_player(clicked_tile.building.player):
             if selected_building.attack_unit(clicked_tile.building, pos):
                 self._reset_selection()
                 self.game_manager.current_state = self.game_manager.selecting_unit_state

@@ -108,6 +108,9 @@ def main_gamer(screen, width, height):
                     game_manager.next_player()
                 if event.key == pygame.K_ESCAPE:
                     game_manager.deselect_unit()
+                    game_manager.deselect_building()
+                else:
+                    game_manager.process_key_press(event)
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:

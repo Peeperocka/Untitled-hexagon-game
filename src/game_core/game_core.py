@@ -1,5 +1,7 @@
 import pygame
+from sympy import print_tree
 
+from src.entities.game.level_objects import City
 from src.game_core.states.states import SelectingUnitState, UnitSelectedState, BuildingSelectedState
 
 
@@ -19,6 +21,7 @@ class Player:
 
 class GameManager:
     def __init__(self, players, board, camera, hud_manager):
+        self.selected_building = None
         self.players = list(players)
         self.current_player_index = 0
         self.current_round = 1
@@ -27,6 +30,7 @@ class GameManager:
         self.hud_manager = hud_manager
         self.ui_manager = self.hud_manager.ui_manager
         self.selected_unit = None
+        self.city_window = None
 
         self.all_sprites = pygame.sprite.Group()
         self.all_units = pygame.sprite.Group()
@@ -171,6 +175,29 @@ class GameManager:
         if self.selected_unit:
             self.selected_unit.selected = False
             self.selected_unit = None
-            self.board.clear_selected_tile()
+            self.board.clear_selected_tiles()
             self.update_ui_for_selected_unit()
             self.current_state = self.selecting_unit_state
+
+    def deselect_building(self):
+        if self.selected_building:
+            self.selected_building = None
+            self.board.clear_selected_tiles()
+            self.update_ui_for_selected_building()
+            self.current_state = self.selecting_unit_state
+
+    def process_key_press(self, event):
+        if not self.game_over:
+            if event.key == pygame.K_q:
+                if self.board.selected_tile and self.board.selected_tile.building and isinstance(
+                        self.board.selected_tile.building,
+                        City) and self.get_current_player() == self.board.selected_tile.building.player:
+                    city = self.board.selected_tile.building
+                    self.hud_manager.open_city_window(city)
+                    self.selected_building = city
+                    self.current_state = self.building_selected_state
+                    self.update_ui_for_selected_building()
+                    self.board.highlighted_hexes = self.board.get_hexes_in_radius(
+                        city.hex_tile,
+                        city.attack_range
+                    )
