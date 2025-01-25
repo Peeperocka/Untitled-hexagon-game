@@ -2,7 +2,6 @@ import cProfile
 import pstats
 import pygame
 import pygame_gui
-
 from src.entities.game.level_objects import City
 from src.utils import hex_utils
 from src.board.board import HexBoard
@@ -10,7 +9,6 @@ from src.camera.camera import Camera
 from src.game_core.game_core import Player, GameManager
 from src.entities.game.units import Warrior, Cavalry, Archer, Crossbowman
 from src.ui.hud.ui import HUDManager
-from src.ui.windows.main_menu import MainMenu
 
 all_sprites = pygame.sprite.Group()
 all_units = pygame.sprite.Group()
@@ -149,6 +147,40 @@ def main_gamer(screen, width, height):
     stats.sort_stats('tottime').print_stats(20)
     return False
 
+def display_rules(manager):
+    rw = pygame_gui.elements.UIWindow(
+        rect=pygame.Rect(100, 100, 800, 600),
+        manager=manager,
+        window_display_title='Правила игры'
+    )
+
+    rules_text = [
+        "Правила игры:",
+        "1. -",
+        "2. -",
+        "3. -",
+        "",
+        "",
+        "",
+        "Нажмите 'Закрыть', чтобы вернуться."
+    ]
+
+    for i, line in enumerate(rules_text):
+        pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(20, 30 + i * 30, 700, 30),
+            text=line,
+            manager=manager,
+            container=rw
+        )
+
+    cb = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect(320, 500, 160, 50),
+        text='Закрыть',
+        manager=manager,
+        container=rw
+    )
+    return rw
+
 
 def main():
     pygame.init()
@@ -157,18 +189,44 @@ def main():
     pygame.display.set_caption("Hex Game")
 
     manager = pygame_gui.UIManager((width, height))
-    main_menu = MainMenu(screen, manager)
+
+    rule = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((400, 350), (200, 50)), text='Правила', manager=manager
+    )
+
+    pl = pygame_gui.elements.UIButton(
+        relative_rect=pygame.Rect((400, 450), (200, 50)), text='Играть', manager=manager
+    )
+
     running = True
+    rw = None
 
     while running:
-        if main_menu.run():
-            manager.clear_and_reset()
-            running = main_gamer(screen, width, height)
-        else:
-            running = False
+        clock = pygame.time.Clock().tick(120) / 1000.0
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == pl:
+                    main_gamer(screen, width, height)
+                elif event.ui_element.text == 'Закрыть' and rw:
+                    rw.kill()
+                    rw = None
+                elif event.ui_element == rule:
+                    rw = display_rules(manager)
+
+            manager.process_events(event)
+
+        manager.update(clock)
+
+        screen.fill((0, 0, 0))
+        manager.draw_ui(screen)
+        pygame.display.flip()
 
     pygame.quit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
