@@ -1,3 +1,4 @@
+import os
 import sys
 
 import pygame
@@ -11,7 +12,8 @@ class HUDManager:
     def __init__(self, screen_width, screen_height, font):
         self.font = font
 
-        self.ui_manager = pygame_gui.UIManager((screen_width, screen_height))
+        self.ui_manager = pygame_gui.UIManager((screen_width, screen_height),
+                                               os.path.join('data', 'theme', 'game_theme.json'))
         self.dynamic_message_manager = DynamicMessageManager(self.font)
         self.elements = {}
         self.city_window = None
@@ -111,7 +113,7 @@ class HUDManager:
     def open_city_window(self, city):
         """Opens the city management window."""
         if self.city_window is None:
-            self.city_window = UICityWindow(city, self.ui_manager)
+            self.city_window = UICityWindow(city, self.ui_manager, self.screen_width, self.screen_height)
         else:
             self.city_window.set_city(city)
         self.city_window.show()

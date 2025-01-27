@@ -9,7 +9,7 @@ from src.utils.utils import load_image
 
 class City(Building):
     """
-    A class representing a city in the game, inheriting from GameObject.
+    A class representing a city in the game, inheriting from Building.
 
     Attributes:
         hp (int): The city's current health points.
@@ -23,6 +23,8 @@ class City(Building):
         size (tuple): The size of the city's image.
         player (Player): The player that owns the city.
         game_manager (GameManager): The game manager responsible for managing the whole game.
+        city_build_options (dict): Dictionary of city building options.
+        unit_build_options (dict): Dictionary of unit building options.
     """
 
     def __init__(self, hex_tile, player, image="castle.png", size=(90, 90), game_manager=None,
@@ -43,6 +45,48 @@ class City(Building):
         self.HEALTH_BAR_OFFSET = 30
         self.selected = False
         self.can_attack = True
+
+        self.city_building = None
+        self.unit_building = None
+        self._initialize_build_options()
+
+    def _initialize_build_options(self):
+        self.city_build_options = {
+            "build_farm": {"name": "Ферма",
+                           "description": "Увеличивает производство еды в городе. Необходима для роста населения и предотвращения голода."},
+            "build_mine": {"name": "Шахта",
+                           "description": "Добывает ценные ресурсы, такие как камень, железо или золото. Увеличивает доход ресурсов для развития города и найма юнитов."},
+            "build_barracks": {"name": "Казармы",
+                               "description": "Позволяет нанимать базовые пехотные юниты. Основа вашей армии для защиты и нападения."},
+            "build_wall": {"name": "Стена",
+                           "description": "Улучшает защиту города, делая его более устойчивым к вражеским атакам и осадам."},
+            "build_market": {"name": "Рынок",
+                             "description": "Усиливает экономику города, увеличивая торговый доход и расширяя доступ к разнообразным товарам."},
+            "build_forge": {"name": "Кузница",
+                            "description": "Улучшает военную мощь города, позволяя создавать лучшее оружие и броню для ваших юнитов."},
+            "build_granary": {"name": "Амбар",
+                              "description": "Увеличивает вместимость хранилищ еды, уменьшая потери от порчи и обеспечивая стабильное снабжение продовольствием."},
+            "build_stable": {"name": "Конюшня",
+                             "description": "Позволяет нанимать кавалерийские юниты. Обеспечивает быстрые и мобильные военные силы."},
+            "build_tower": {"name": "Башня",
+                            "description": "Оборонительное сооружение, усиливающее защиту города дальнобойными атаками, эффективно против вражеских осад."},
+        }
+        self.unit_build_options = {
+            "build_peasant": {"name": "Крестьянин",
+                              "description": "Базовый гражданский юнит, занимается сбором ресурсов и строительством. Основа экономики города."},
+            "build_warrior": {"name": "Воин",
+                              "description": "Базовый пехотный юнит ближнего боя. Эффективен в ближнем бою и против легкобронированных противников."},
+            "build_archer": {"name": "Лучник",
+                             "description": "Дальнобойный юнит, атакует на расстоянии. Эффективен против пехоты и для ослабления врага перед ближним боем."},
+            "build_knight": {"name": "Рыцарь",
+                             "description": "Тяжелая кавалерия, мощная и быстрая. Отлично подходит для фланговых маневров и прорыва вражеских линий. Дорогой в найме."},
+            "build_mage": {"name": "Маг",
+                           "description": "Юнит, использующий магию. Может наносить магический урон, лечить или применять заклинания поддержки."},
+            "build_priest": {"name": "Жрец",
+                             "description": "Юнит поддержки, лечит дружественные войска и повышает их боевой дух. Важен для поддержания армии в бою."},
+            "build_scout": {"name": "Разведчик",
+                            "description": "Быстрый и легкий юнит для разведки местности, обнаружения врагов и ресурсов."},
+        }
 
     def take_damage(self, damage):
         effective_damage = max(0, damage - self.defense)
@@ -120,3 +164,25 @@ class City(Building):
     def on_round_end(self):
         self.can_attack = True
         self.hp = min(self.hp + 5, self.max_hp)
+
+    def get_info_list(self):
+        return [
+            f"Здоровье: {self.hp}/{self.max_hp}",
+            f"Защита: {self.defense}",
+            f"Улучшение города: {self.city_build_options[self.city_building]['name'] if self.city_building else 'не идет'}",
+            f"Производство юнита: {self.unit_build_options[self.unit_building]['name'] if self.unit_building else 'не идет'}"
+        ]
+
+    def get_city_build_options(self):
+        return self.city_build_options
+
+    def get_unit_build_options(self):
+        return self.unit_build_options
+
+    def start_city_build(self, building_type):
+        print(f"Начато строительство города: {building_type}")
+        self.city_building = building_type
+
+    def start_unit_build(self, unit_type):
+        print(f"Начато производство юнита: {unit_type}")
+        self.unit_building = unit_type

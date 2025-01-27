@@ -76,6 +76,7 @@ def main_gamer(screen, width, height):
 
     player1_data = [
         (Cavalry, (0, 0, 0)),
+        (Cavalry, (-1, 3, -2)),
         (Archer, (-1, 1, 0)),
         (Crossbowman, (-1, 2, -1)),
     ]
