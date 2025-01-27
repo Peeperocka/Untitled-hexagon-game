@@ -28,7 +28,7 @@ class UICityWindow(pygame_gui.elements.UIWindow):
 
         self.info_button = pygame_gui.elements.UIButton(
             pygame.Rect(start_x, button_y, category_button_width, category_button_height),
-            "Информация",
+            "Инфо",
             manager=self.manager,
             container=self,
             object_id="#category_button",
@@ -37,7 +37,7 @@ class UICityWindow(pygame_gui.elements.UIWindow):
 
         self.city_build_button = pygame_gui.elements.UIButton(
             pygame.Rect(start_x, button_y, category_button_width, category_button_height),
-            "Строительство города",
+            "Улучшения",
             manager=self.manager,
             container=self,
             object_id="#category_button",
@@ -46,7 +46,7 @@ class UICityWindow(pygame_gui.elements.UIWindow):
 
         self.unit_build_button = pygame_gui.elements.UIButton(
             pygame.Rect(start_x, button_y, category_button_width, category_button_height),
-            "Строительство юнитов",
+            "Наем юнитов",
             manager=self.manager,
             container=self,
             object_id="#category_button",
@@ -96,9 +96,9 @@ class UICityWindow(pygame_gui.elements.UIWindow):
                 for option_id, button in self.build_option_buttons.items():
                     if event.ui_element == button:
                         if self.current_category == "city_build":
-                            self.city.start_city_build(option_id)
+                            self.city.start_city_improvement_construction(option_id) # Correct method name
                         elif self.current_category == "unit_build":
-                            self.city.start_unit_build(option_id)
+                            self.city.start_unit_recruitment(option_id) # Correct method name
                         break
 
         return super().process_event(event)
@@ -118,16 +118,16 @@ class UICityWindow(pygame_gui.elements.UIWindow):
 
     def _show_info_content(self):
         self.info_panel.show()
-        info_list = self.city.get_info_list()
+        info_list = self.city.get_city_report() # Use get_city_report for info
         self.info_text_box.html_text = self._format_list_to_html(info_list)
         self.info_text_box.rebuild()
 
     def _show_city_build_content(self):
-        self._populate_build_options(self.city.get_city_build_options())
+        self._populate_build_options(self.city.get_city_improvement_blueprints()) # Get city improvements
         self.build_options_panel.show()
 
     def _show_unit_build_content(self):
-        self._populate_build_options(self.city.get_unit_build_options())
+        self._populate_build_options(self.city.get_unit_recruitment_blueprints()) # Get unit recruitment options
         self.build_options_panel.show()
 
     def _populate_build_options(self, build_options):
@@ -141,13 +141,18 @@ class UICityWindow(pygame_gui.elements.UIWindow):
         y_offset = 0
 
         for option_id, option_data in build_options.items():
+            if isinstance(option_data, dict): # Check if it's UI unit blueprints
+                name = option_data.get('name', option_id) # Use 'name' from UI blueprint or ID if name is missing
+                description = option_data.get('description', 'No description')
+            else: # Assume it's CityImprovementBlueprint
+                name = option_data.name
+                description = option_data.description
             button = pygame_gui.elements.UIButton(
                 pygame.Rect(5, y_offset + start_y, button_width, button_height),
-                option_data["name"],
+                name, # Use name from blueprint data
                 manager=self.manager,
                 container=self.build_options_container,
-                object_id="#build_option_button",
-                tool_tip_text=option_data["description"]
+                tool_tip_text=description # Use description from blueprint
             )
             self.build_option_buttons[option_id] = button
             y_offset += button_height + 5

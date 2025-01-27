@@ -1,17 +1,21 @@
 import random
 
 import pygame
+from matplotlib.colors import NoNorm
 
 from src.utils import hex_utils
 from src.utils.utils import load_image
+from src.entities.base.blueprints import UnitBlueprint, TileBuildingBlueprint
 
 
 class GameObject(pygame.sprite.Sprite):
-    def __init__(self, hex_tile, image, size, game_manager, player, image_subdir=None):
+    def __init__(self, hex_tile, image_name, size, game_manager, player,
+                 image_subdir=None):
         super().__init__(game_manager.all_sprites)
         self.game_manager = game_manager
         self.hex_tile = hex_tile
-        self.image = pygame.transform.scale(load_image(image, subdir=image_subdir), size)
+        self.hex_tile.unit = self
+        self.image = pygame.transform.scale(load_image(image_name, subdir=image_subdir), size)
         self.rect = self.image.get_rect()
         self.base_y = 0
         self.update_position(hex_tile)
@@ -19,6 +23,7 @@ class GameObject(pygame.sprite.Sprite):
         self.player.all_objects.add(self)
 
     def update_position(self, hex_tile):
+        self.hex_tile.unit = None
         self.hex_tile = hex_tile
         self.hex_tile.unit = self
         pixel_coords = self.hex_tile.to_pixel(self.game_manager.board.layout).get_coords()
@@ -30,22 +35,66 @@ class GameObject(pygame.sprite.Sprite):
 
 
 class Building(GameObject):
-    def __init__(self, hex_tile, image, size, game_manager, player, image_subdir=None):
-        super().__init__(hex_tile, image, size, game_manager, player, image_subdir='level_objects')
+    def __init__(self, hex_tile, blueprint: TileBuildingBlueprint, game_manager, player,
+                 image_subdir='level_objects'):
+        super().__init__(hex_tile, blueprint.name.lower() + ".png", (90, 90), game_manager, player,
+                         image_subdir)
+        self.blueprint = blueprint
+        self.hex_tile.unit = None
+        self.hex_tile.building = self
         self.player.buildings.add(self)
+        self.hp = blueprint.base_health
+        self.max_hp = blueprint.base_health
+        self.attack_range = blueprint.attack_range
+        self.damage = blueprint.base_attack
+        self.min_damage = blueprint.min_damage
+        self.max_damage = blueprint.max_damage
+        self.defense = blueprint.defense
+        self.can_attack = False
 
     def update_position(self, hex_tile):
+        self.hex_tile.building = None
         self.hex_tile = hex_tile
         self.hex_tile.building = self
         pixel_coords = self.hex_tile.to_pixel(self.game_manager.board.layout).get_coords()
         self.rect.center = pixel_coords
         self.base_y = self.rect.centery
 
+    def take_damage(self, amount):
+        self.hp -= amount
+        print(f"{self} (Building) took {amount} damage. Current HP: {self.hp}")
+        if self.hp <= 0:
+            print(f"{self} (Building) has been destroyed.")
+            self.die()
+
+    def die(self):
+        self.player.buildings.remove(self)
+        if self.hex_tile:
+            self.hex_tile.building = None
+            self.hex_tile = None
+        super().kill()
+
+    def attack_target(self, target_unit):  # Example attack method for buildings if they can attack
+        if not self.can_attack:  # If buildings are meant to attack, implement logic for can_attack and round resets
+            print(f"{self} (Building) cannot attack yet or has already attacked.")
+            return False
+
+        distance = hex_utils.cube_distance(self.hex_tile, target_unit.hex_tile)
+        if distance > self.attack_range:
+            print(f"{self} (Building) target out of attack range.")
+            return False
+
+        damage_dealt = random.randint(self.min_damage, self.max_damage)  # Use min/max damage from blueprint
+        target_unit.take_damage(damage_dealt)
+        print(f"{self} (Building) attacked {target_unit} for {damage_dealt} damage.")
+        self.can_attack = False  # If buildings attack once per round
+
 
 class Unit(GameObject):
-    def __init__(self, hex_tile, image, size, player, game_manager, damage, damage_spread, hp, movement_range,
-                 attack_range):
-        super().__init__(hex_tile, image, size, game_manager, player, image_subdir='units')
+    def __init__(self, hex_tile, blueprint: UnitBlueprint, player, game_manager):
+        super().__init__(hex_tile, blueprint.name.lower() + ".png", (70, 70), game_manager, player,
+                         image_subdir='units')
+        self.blueprint = blueprint
         self.player = player
         game_manager.all_units.add(self)
         if player.player_id == 1:
@@ -65,14 +114,14 @@ class Unit(GameObject):
         self.HEALTH_BAR_HEIGHT = 8
         self.HEALTH_BAR_OFFSET = 30
 
-        self.damage = damage
-        self.damage_spread = damage_spread
-        self.hp = hp
-        self.max_hp = hp
-        self.max_movement_range = movement_range
-        self.current_movement_range = movement_range
+        self.damage = blueprint.base_attack
+        self.damage_spread = 7
+        self.hp = blueprint.base_health
+        self.max_hp = blueprint.base_health
+        self.max_movement_range = 5
+        self.current_movement_range = 5
         self.can_attack = True
-        self.attack_range = attack_range
+        self.attack_range = 1
 
     @property
     def player_id(self):
@@ -85,7 +134,8 @@ class Unit(GameObject):
             self._handle_jump()
             return
 
-        if self.game_manager.is_current_player(self.player) and (self.current_movement_range > 0 or self.can_attack):
+        if self.game_manager.is_current_player(self.player) and (
+                self.current_movement_range > 0 or self.can_attack):
             self._handle_jump()
         elif not self.is_jumping:
             pixel_coords = self.hex_tile.to_pixel(self.game_manager.board.layout).get_coords()
@@ -151,7 +201,8 @@ class Unit(GameObject):
             print(text)
             return False
 
-        damage_dealt = max(0, self.damage + random.randint(-self.damage_spread, self.damage_spread))
+        damage_dealt = max(0, self.damage + random.randint(-self.damage_spread,
+                                                           self.damage_spread))
         target_unit.take_damage(damage_dealt)
         print(f"{self} attacked {target_unit} for {damage_dealt} damage.")
         self.can_attack = False
@@ -200,16 +251,16 @@ class Unit(GameObject):
 
     def get_unit_info_text(self):
         return (
-            f"<font color='#FFFFFF'><b>{type(self).__name__}</b></font><br>"
-            f"<font color='#AAAAAA'>HP: {self.hp}</font><br>"
+            f"<font color='#FFFFFF'><b>{self.blueprint.name}</b></font><br>"
+            f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
             f"<font color='#AAAAAA'>Damage: {self.damage} (+/- {self.damage_spread})</font><br>"
             f"<font color='#AAAAAA'>Movement: {self.current_movement_range}/{self.max_movement_range}</font>"
         )
 
     def get_enemy_unit_info_text(self):
         return (
-            f"<font color='#FF0000'><b>[ENEMY] {type(self).__name__}</b></font><br>"
-            f"<font color='#AAAAAA'>HP: {self.hp}</font><br>"
+            f"<font color='#FF0000'><b>[ENEMY] {self.blueprint.name}</b></font><br>"
+            f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
             f"<font color='#AAAAAA'>Damage: {self.damage} (+/- {self.damage_spread})</font><br>"
             f"<font color='#AAAAAA'>Movement: {self.current_movement_range}/{self.max_movement_range}</font>"
         )

@@ -3,13 +3,14 @@ import pstats
 import pygame
 import pygame_gui
 from src.entities.game.level_objects import City
+from src.entities.game.registry import CITY_BLUEPRINTS, UNIT_BLUEPRINTS
 from src.utils import hex_utils
 from src.board.board import HexBoard
 from src.camera.camera import Camera
 from src.game_core.game_core import Player, GameManager
-from src.entities.game.units import Warrior, Cavalry, Archer, Crossbowman
 from src.ui.hud.ui import HUDManager
 from src.ui.windows.main_menu import MainMenu
+from src.utils.factories import GameEntityFactory  # Import GameEntityFactory
 
 all_sprites = pygame.sprite.Group()
 all_units = pygame.sprite.Group()
@@ -31,27 +32,30 @@ def place_units_for_testing(board, player1, player2, player1_units_data, player2
         super().__init__(hex_tile, image, size, game_manager, player, image_subdir=image_subdir)"""
     city_tile = board.get_tile_by_hex(hex_utils.Hex(-1, 3, -2))
     print(city_tile)
-    City(city_tile, game_manager=game_manager, player=player1)
+    GameEntityFactory.create_city('city', city_tile, player1, game_manager)  # Use factory for city creation
 
-    for unit_type, hex_coords in player1_units_data:
+    for unit_id, hex_coords in player1_units_data:  # unit_id is now a string
         tile = board.get_tile_by_hex(hex_utils.Hex(*hex_coords))
         if tile and tile.unit is None:
-            unit = unit_type(tile, player1, game_manager)
+            unit = GameEntityFactory.create_unit(unit_id, tile, player1,
+                                                 game_manager)  # Use factory to create unit by ID
             player1.units.add(unit)
         else:
-            print(f"Could not place unit {unit_type} at {hex_coords} for Player 1.")
+            print(f"Could not place unit {unit_id} at {hex_coords} for Player 1.")
 
-    for unit_type, hex_coords in player2_units_data:
+    for unit_id, hex_coords in player2_units_data:  # unit_id is now a string
         tile = board.get_tile_by_hex(hex_utils.Hex(*hex_coords))
         if tile and tile.unit is None:
-            unit = unit_type(tile, player2, game_manager)
+            unit = GameEntityFactory.create_unit(unit_id, tile, player2,
+                                                 game_manager)  # Use factory to create unit by ID
             player2.units.add(unit)
         else:
-            print(f"Could not place unit {unit_type} at {hex_coords} for Player 2.")
+            print(f"Could not place unit {unit_id} at {hex_coords} for Player 2.")
 
 
 def main_gamer(screen, width, height):
-    global game_manager, hud_manager, camera, board, player1, player2, all_sprites, all_units, player_1_units, player_2_units, military_objects
+    global game_manager, hud_manager, camera, board, player1, player2, all_sprites, \
+        all_units, player_1_units, player_2_units, military_objects
 
     FPS = 60
     pygame.display.set_caption("Hex Game")
@@ -75,15 +79,15 @@ def main_gamer(screen, width, height):
     military_objects = game_manager.military
 
     player1_data = [
-        (Cavalry, (0, 0, 0)),
-        (Cavalry, (-1, 3, -2)),
-        (Archer, (-1, 1, 0)),
-        (Crossbowman, (-1, 2, -1)),
+        ("cavalry", (0, 0, 0)),  # Use unit IDs as strings
+        ("cavalry", (-1, 3, -2)),
+        ("archer", (-1, 1, 0)),
+        ("crossbowman", (-1, 2, -1)),
     ]
     player2_data = [
-        (Warrior, (3, 0, -3)),
-        (Warrior, (3, 1, -4)),
-        (Warrior, (2, 2, -4)),
+        ("warrior", (3, 0, -3)),  # Use unit IDs as strings
+        ("warrior", (3, 1, -4)),
+        ("warrior", (2, 2, -4)),
     ]
     place_units_for_testing(board, player1, player2, player1_data, player2_data)
 

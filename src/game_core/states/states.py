@@ -23,6 +23,7 @@ class GameState:
 class SelectingUnitState(GameState):
     def handle_mouse_click(self, pos):
         clicked_tile = self.board.get_click(pos, self.camera)
+        print(clicked_tile.unit, clicked_tile.building, 'bebra')
         if not clicked_tile:
             print("Clicked outside the grid.")
             return

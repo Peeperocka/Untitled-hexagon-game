@@ -1,92 +1,53 @@
 import random
-
 import pygame
 
 from src.entities.base.game_objects import Building
 from src.utils import hex_utils
 from src.utils.utils import load_image
+from src.entities.base.blueprints import CityBlueprint
+from src.entities.game.registry import CITY_IMPROVEMENT_BLUEPRINTS, UNIT_BLUEPRINTS
 
 
+# noinspection PyTypeChecker
 class City(Building):
     """
-    A class representing a city in the game, inheriting from Building.
-
-    Attributes:
-        hp (int): The city's current health points.
-        max_health (int): The city's maximum health points.
-        attack (int): The city's attack power.
-        min_damage (int): The minimum damage the city can inflict.
-        max_damage (int): The maximum damage the city can inflict.
-        defense (int): Reduce incoming damage by that amount.
-        attack_range (int): The range at which the city can attack.
-        image (str): The path to the city's image.
-        size (tuple): The size of the city's image.
-        player (Player): The player that owns the city.
-        game_manager (GameManager): The game manager responsible for managing the whole game.
-        city_build_options (dict): Dictionary of city building options.
-        unit_build_options (dict): Dictionary of unit building options.
+    A class representing a City as a tile-based building.
+    Manages city improvements internally, not as tile objects.
     """
 
-    def __init__(self, hex_tile, player, image="castle.png", size=(90, 90), game_manager=None,
-                 hp=100, attack=10, min_damage=5, max_damage=30, defense=5, attack_range=3,
-                 image_subdir="level_objects"):
-        super().__init__(hex_tile, image, size, game_manager, player, image_subdir=image_subdir)
-        self.image = pygame.transform.scale(load_image(image, subdir=image_subdir, colorkey=-1), size)
+    def __init__(self, hex_tile, player, game_manager, blueprint: CityBlueprint):
+        super().__init__(hex_tile, blueprint, game_manager, player)
+        self.image = pygame.transform.scale(
+            load_image(blueprint.name.lower() + ".png", subdir="level_objects"), (90, 90))
         self.player = player
-        self.max_hp = hp
+
+        self.max_hp = blueprint.base_health
         self.hp = self.max_hp
-        self.attack = attack
-        self.min_damage = min_damage
-        self.max_damage = max_damage
-        self.defense = defense
-        self.attack_range = attack_range
+        self.attack = blueprint.base_attack
+        self.min_damage = blueprint.min_damage
+        self.max_damage = blueprint.max_damage
+        self.defense = blueprint.defense
+        self.attack_range = blueprint.attack_range
+
         self.HEALTH_BAR_WIDTH = 40
         self.HEALTH_BAR_HEIGHT = 8
         self.HEALTH_BAR_OFFSET = 30
         self.selected = False
         self.can_attack = True
 
-        self.city_building = None
-        self.unit_building = None
-        self._initialize_build_options()
+        self.city_improvements_in_progress_id = None
+        self.unit_recruitment_in_progress_id = None
+        self.city_improvements = {}
+        self.food_production = 5
+        self.food_storage = 20
+        self.gold_income = 10
+        self.stone_income = 0
+        self.available_unit_types = []
+        self._initialize_city_improvements_blueprints()
 
-    def _initialize_build_options(self):
-        self.city_build_options = {
-            "build_farm": {"name": "Ферма",
-                           "description": "Увеличивает производство еды в городе. Необходима для роста населения и предотвращения голода."},
-            "build_mine": {"name": "Шахта",
-                           "description": "Добывает ценные ресурсы, такие как камень, железо или золото. Увеличивает доход ресурсов для развития города и найма юнитов."},
-            "build_barracks": {"name": "Казармы",
-                               "description": "Позволяет нанимать базовые пехотные юниты. Основа вашей армии для защиты и нападения."},
-            "build_wall": {"name": "Стена",
-                           "description": "Улучшает защиту города, делая его более устойчивым к вражеским атакам и осадам."},
-            "build_market": {"name": "Рынок",
-                             "description": "Усиливает экономику города, увеличивая торговый доход и расширяя доступ к разнообразным товарам."},
-            "build_forge": {"name": "Кузница",
-                            "description": "Улучшает военную мощь города, позволяя создавать лучшее оружие и броню для ваших юнитов."},
-            "build_granary": {"name": "Амбар",
-                              "description": "Увеличивает вместимость хранилищ еды, уменьшая потери от порчи и обеспечивая стабильное снабжение продовольствием."},
-            "build_stable": {"name": "Конюшня",
-                             "description": "Позволяет нанимать кавалерийские юниты. Обеспечивает быстрые и мобильные военные силы."},
-            "build_tower": {"name": "Башня",
-                            "description": "Оборонительное сооружение, усиливающее защиту города дальнобойными атаками, эффективно против вражеских осад."},
-        }
-        self.unit_build_options = {
-            "build_peasant": {"name": "Крестьянин",
-                              "description": "Базовый гражданский юнит, занимается сбором ресурсов и строительством. Основа экономики города."},
-            "build_warrior": {"name": "Воин",
-                              "description": "Базовый пехотный юнит ближнего боя. Эффективен в ближнем бою и против легкобронированных противников."},
-            "build_archer": {"name": "Лучник",
-                             "description": "Дальнобойный юнит, атакует на расстоянии. Эффективен против пехоты и для ослабления врага перед ближним боем."},
-            "build_knight": {"name": "Рыцарь",
-                             "description": "Тяжелая кавалерия, мощная и быстрая. Отлично подходит для фланговых маневров и прорыва вражеских линий. Дорогой в найме."},
-            "build_mage": {"name": "Маг",
-                           "description": "Юнит, использующий магию. Может наносить магический урон, лечить или применять заклинания поддержки."},
-            "build_priest": {"name": "Жрец",
-                             "description": "Юнит поддержки, лечит дружественные войска и повышает их боевой дух. Важен для поддержания армии в бою."},
-            "build_scout": {"name": "Разведчик",
-                            "description": "Быстрый и легкий юнит для разведки местности, обнаружения врагов и ресурсов."},
-        }
+    def _initialize_city_improvements_blueprints(self):
+        self.city_improvement_blueprints = CITY_IMPROVEMENT_BLUEPRINTS
+        self.unit_recruitment_blueprints_ui = UNIT_BLUEPRINTS
 
     def take_damage(self, damage):
         effective_damage = max(0, damage - self.defense)
@@ -98,20 +59,17 @@ class City(Building):
     def attack_unit(self, target_unit, mouse_pos):
         if not target_unit:
             return False
-
         if not self.can_attack:
             text = 'City has already attacked this round.'
             self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(f"{self} has already attacked this round.")
             return False
-
         distance = hex_utils.cube_distance(self.hex_tile, target_unit.hex_tile)
         if distance > self.attack_range:
             text = f"Out of attack range."
             self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(text)
             return False
-
         damage = random.randint(self.min_damage, self.max_damage)
         print(
             f"City at {self.hex_tile.q}, {self.hex_tile.r} attacks unit at {target_unit.hex_tile.q}, {target_unit.hex_tile.r} for {damage} damage.")
@@ -145,7 +103,7 @@ class City(Building):
 
     def get_unit_info_text(self):
         return (
-            f"<font color='#FFFFFF'><b>{type(self).__name__}</b></font><br>"
+            f"<font color='#FFFFFF'><b>{self.blueprint.name}</b></font><br>"
             f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
             f"<font color='#AAAAAA'>Attack: {self.min_damage}-{self.max_damage}</font><br>"
             f"<font color='#AAAAAA'>Defense: {self.defense}</font><br>"
@@ -154,7 +112,7 @@ class City(Building):
 
     def get_enemy_unit_info_text(self):
         return (
-            f"<font color='#FF0000'><b>[ENEMY] {type(self).__name__}</b></font><br>"
+            f"<font color='#FF0000'><b>[ENEMY] {self.blueprint.name}</b></font><br>"
             f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
             f"<font color='#AAAAAA'>Attack: {self.min_damage}-{self.max_damage}</font><br>"
             f"<font color='#AAAAAA'>Defense: {self.defense}</font><br>"
@@ -165,24 +123,104 @@ class City(Building):
         self.can_attack = True
         self.hp = min(self.hp + 5, self.max_hp)
 
-    def get_info_list(self):
+        self._apply_city_improvement_effects()
+        self._process_city_tasks_on_round_end()
+
+    def _apply_city_improvement_effects(self):
+        self.food_production = 5
+        self.gold_income = 10
+        self.stone_income = 0
+        self.available_unit_types = []
+        provides_food_storage = 0
+        for improvement_id in self.city_improvements:
+            improvement_blueprint = self.city_improvement_blueprints[improvement_id]
+            for effect_str in improvement_blueprint.provides:
+                if ":" in effect_str:
+                    effect_type, effect_value = effect_str.split(":", 1)
+                    if effect_type == "food_production":
+                        self.food_production += int(effect_value)
+                    elif effect_type == "gold_income":
+                        self.gold_income += int(effect_value)
+                    elif effect_type == "stone_income":
+                        self.stone_income += int(effect_value)
+                    elif effect_type == "unit_recruitment":
+                        self.available_unit_types.append(effect_value)
+                    elif effect_type == "food_storage":
+                        provides_food_storage += int(effect_value)
+        self.food_storage = 20 + provides_food_storage
+
+    def _process_city_tasks_on_round_end(self):
+        if self.city_improvements_in_progress_id:
+            improvement_blueprint = self.city_improvement_blueprints[self.city_improvements_in_progress_id]
+            self.complete_city_improvement_construction()
+
+        if self.unit_recruitment_in_progress_id:
+            unit_blueprint = UNIT_BLUEPRINTS[self.unit_recruitment_in_progress_id]
+            self.complete_unit_recruitment()
+
+        self.food_storage += self.food_production
+        self.food_storage = max(0, self.food_storage - 2)
+        self.food_storage = min(self.food_storage, self.max_food_storage)
+
+    @property
+    def max_food_storage(self):
+        base_storage = 20
+        storage_bonus = sum(int(effect.split(':')[1]) for imp_id in self.city_improvements
+                            for effect in self.city_improvements[imp_id].blueprint.provides if
+                            effect.startswith('food_storage:'))
+        return base_storage + storage_bonus
+
+    def get_city_report(self):
+        improvement_name = "не идет"
+        if self.city_improvements_in_progress_id:
+            improvement_name = self.city_improvement_blueprints[self.city_improvements_in_progress_id].name
+
+        unit_name = "не идет"
+        if self.unit_recruitment_in_progress_id:
+            unit_name = self.unit_recruitment_blueprints_ui[
+                self.unit_recruitment_in_progress_id].name
+
+        improvement_list_str = ", ".join([self.city_improvement_blueprints[imp_id].name for imp_id in
+                                          self.city_improvements]) if self.city_improvements else "нет"
+
         return [
             f"Здоровье: {self.hp}/{self.max_hp}",
             f"Защита: {self.defense}",
-            f"Улучшение города: {self.city_build_options[self.city_building]['name'] if self.city_building else 'не идет'}",
-            f"Производство юнита: {self.unit_build_options[self.unit_building]['name'] if self.unit_building else 'не идет'}"
+            f"Производство еды: {self.food_production}",
+            f"Хранилище еды: {self.food_storage}/{self.max_food_storage}",
+            f"Доход золота: {self.gold_income}",
+            f"Добыча камня: {self.stone_income}",
+            f"Строится улучшение: {improvement_name}",
+            f"Наем юнита: {unit_name}",
+            f"Постройки города: {improvement_list_str}"
         ]
 
-    def get_city_build_options(self):
-        return self.city_build_options
+    def get_city_improvement_blueprints(self):
+        return self.city_improvement_blueprints
 
-    def get_unit_build_options(self):
-        return self.unit_build_options
+    def get_unit_recruitment_blueprints(self):
+        return self.unit_recruitment_blueprints_ui
 
-    def start_city_build(self, building_type):
-        print(f"Начато строительство города: {building_type}")
-        self.city_building = building_type
+    def start_city_improvement_construction(self, improvement_id):
+        print(f"Начато строительство улучшения города: {improvement_id}")
+        self.city_improvements_in_progress_id = improvement_id
 
-    def start_unit_build(self, unit_type):
-        print(f"Начато производство юнита: {unit_type}")
-        self.unit_building = unit_type
+    def start_unit_recruitment(self, unit_type):
+        print(f"Начат наем юнита: {unit_type}")
+        self.unit_recruitment_in_progress_id = unit_type
+
+    def complete_city_improvement_construction(self):
+        if self.city_improvements_in_progress_id:
+            improvement_id = self.city_improvements_in_progress_id
+            self.city_improvements[improvement_id] = self.city_improvement_blueprints[
+                improvement_id]
+            print(f"Строительство улучшения города {improvement_id} завершено.")
+            self.city_improvements_in_progress_id = None
+            self._apply_city_improvement_effects()
+
+    def complete_unit_recruitment(self):
+        if self.unit_recruitment_in_progress_id:
+            unit_id = self.unit_recruitment_in_progress_id
+            print(f"Наем юнита {unit_id} завершен.")
+            self.game_manager.create_unit(unit_id, self.hex_tile, self.player)
+            self.unit_recruitment_in_progress_id = None
