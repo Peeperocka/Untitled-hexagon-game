@@ -1,5 +1,4 @@
 import pygame
-from sympy import print_tree
 
 from src.entities.game.level_objects import City
 from src.game_core.states.states import SelectingUnitState, UnitSelectedState, BuildingSelectedState

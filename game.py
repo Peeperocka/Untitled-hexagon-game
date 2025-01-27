@@ -150,7 +150,6 @@ def main_gamer(screen, width, height):
     return False
 
 
-
 def main():
     pygame.init()
     width, height = 1000, 800
@@ -169,8 +168,6 @@ def main():
             running = False
 
     pygame.quit()
-
-
 
 
 if __name__ == "__main__":
