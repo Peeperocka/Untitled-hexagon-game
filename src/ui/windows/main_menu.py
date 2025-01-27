@@ -9,17 +9,15 @@ class MainMenu:
         self.is_running = True
         self.start_game_requested = False
 
-        self.lb = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(400, 400, 200, 50), text='Выход',
-                                               manager=self.manager
-                                               )
+        self.lb = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(400, 400, 200, 50),text='Выход',manager=self.manager
+        )
 
-        self.sb = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(400, 300, 200, 50), text='Начать игру',
-                                               manager=self.manager
-                                               )
+        self.sb = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(400, 300, 200, 50),text='Начать игру',manager=self.manager
+        )
 
-        self.rb = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(400, 200, 200, 50), text='Правила',
-                                               manager=self.manager
-                                               )
+        self.rb = pygame_gui.elements.UIButton(relative_rect=pygame.Rect(400, 200, 200, 50),text='Правила',manager=self.manager
+        )
+
 
         self.clock = pygame.time.Clock()
         self.rules_window = None
@@ -60,9 +58,8 @@ class MainMenu:
 
 
 def display_rules(manager):
-    rw = pygame_gui.elements.UIWindow(rect=pygame.Rect(100, 100, 800, 600), manager=manager,
-                                      window_display_title='Правила игры'
-                                      )
+    rw = pygame_gui.elements.UIWindow(rect=pygame.Rect(100, 100, 800, 600),manager=manager,window_display_title='Правила игры'
+    )
 
     rt = [
         "Правила игры:",
@@ -76,17 +73,16 @@ def display_rules(manager):
 
     for i, line in enumerate(rt):
         pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(20, 10 + i * 30, 650, 30), text=line, manager=manager, container=rw
+            relative_rect=pygame.Rect(20, 10 + i * 30, 650, 30),text=line,manager=manager,container=rw
         )
 
     cb = pygame_gui.elements.UIButton(
-        relative_rect=pygame.Rect(320, 500, 160, 50), text='Закрыть', manager=manager, container=rw
+        relative_rect=pygame.Rect(320, 500, 160, 50),text='Закрыть',manager=manager,container=rw
     )
 
     rw.cb = cb
 
     return rw
-
 
 def main():
     pygame.init()
