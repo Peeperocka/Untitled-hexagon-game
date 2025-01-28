@@ -28,19 +28,30 @@ class ResourceDisplay:
 
         self.text_rect = pygame.Rect(
             self.image_rect.topright,
-            (70, self.image_rect.height),
+            (120, self.image_rect.height),
         )
         self.text_rect.x += self.padding
         self.amount_label = pygame_gui.elements.UITextBox(
             relative_rect=self.text_rect,
-            html_text=str(self.amount),
+            html_text=self._format_resource_text(self.amount, 0),
             manager=self.ui_manager,
             object_id=pygame_gui.core.ObjectID(class_id="@resource_amount_label"),
         )
 
-    def update_amount(self, new_amount):
+    def _format_resource_text(self, amount, change):
+        """Formats the resource text to include amount and change."""
+        change_str = ""
+        if change > 0:
+            change_str = f'<font color=#00FF00> (+{change})</font>'
+        elif change < 0:
+            change_str = f'<font color=#FF0000> ({change})</font>'
+        return f'{amount}{change_str}'
+
+    def update_amount(self, new_amount, income, expense):
+        """Updates the displayed amount and resource change."""
         self.amount = new_amount
-        self.amount_label.html_text = str(self.amount)
+        change = income - expense
+        self.amount_label.html_text = self._format_resource_text(self.amount, change)
         self.amount_label.rebuild()
 
     def draw(self, surface):
@@ -131,10 +142,10 @@ class HUDManager:
 
     def _create_resource_displays(self):
         """Creates resource icons and counters in the top-left corner."""
-        resource_types = ['gold', 'rock', 'wood', 'metal', 'food']
+        resource_types = ['gold', 'stone', 'wood', 'metal', 'food']
         start_x = 10
         start_y = 10
-        offset_x = 110
+        offset_x = 160
 
         self.resource_displays = {}
         for i, res_type in enumerate(resource_types):
@@ -142,16 +153,18 @@ class HUDManager:
             res_display = ResourceDisplay(res_type, 100, (x_pos, start_y), self.ui_manager)
             self.resource_displays[res_type] = res_display
 
-    def update_resource_values(self, resources: dict):
-        """Updates the displayed resource values.
+    def update_resource_values(self, resources: dict, income: dict, expense: dict):
+        """Updates the displayed resource values and changes.
 
         Args:
-            resources (dict): A dictionary where keys are resource types
-                              and values are their amounts.
+            resources (dict): A dictionary where keys are resource types and values are their amounts.
+            income (dict): A dictionary of resource income.
+            expense (dict): A dictionary of resource expenses.
         """
         for res_type, amount in resources.items():
             if res_type in self.resource_displays:
-                self.resource_displays[res_type].update_amount(amount)
+                self.resource_displays[res_type].update_amount(amount, income.get(res_type, 0),
+                                                               expense.get(res_type, 0))
 
     def _create_default_elements(self, screen_width, screen_height):
         unit_info_panel = pygame_gui.elements.UIPanel(

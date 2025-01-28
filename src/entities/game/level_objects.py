@@ -123,30 +123,34 @@ class City(Building):
         self.can_attack = True
         self.hp = min(self.hp + 5, self.max_hp)
 
-        self._apply_city_improvement_effects()
+        self.apply_city_improvement_effects()
         self._process_city_tasks_on_round_end()
 
-    def _apply_city_improvement_effects(self):
+    def apply_city_improvement_effects(self):
         self.food_production = 5
         self.gold_income = 10
         self.stone_income = 0
         self.available_unit_types = []
         provides_food_storage = 0
+
+        player_income = self.player.income
+
         for improvement_id in self.city_improvements:
             improvement_blueprint = self.city_improvement_blueprints[improvement_id]
-            for effect_str in improvement_blueprint.provides:
-                if ":" in effect_str:
-                    effect_type, effect_value = effect_str.split(":", 1)
-                    if effect_type == "food_production":
-                        self.food_production += int(effect_value)
-                    elif effect_type == "gold_income":
-                        self.gold_income += int(effect_value)
-                    elif effect_type == "stone_income":
-                        self.stone_income += int(effect_value)
-                    elif effect_type == "unit_recruitment":
-                        self.available_unit_types.append(effect_value)
-                    elif effect_type == "food_storage":
-                        provides_food_storage += int(effect_value)
+            for effect_type, effect_value in improvement_blueprint.provides.items():
+                if effect_type == "food_production":
+                    self.food_production += int(effect_value)
+                    player_income["food"] += int(effect_value)
+                elif effect_type == "gold_income":
+                    self.gold_income += int(effect_value)
+                    player_income["gold"] += int(effect_value)
+                elif effect_type == "stone_income":
+                    self.stone_income += int(effect_value)
+                    player_income["stone"] += int(effect_value)
+                elif effect_type == "unit_recruitment":
+                    self.available_unit_types.append(effect_value)
+                elif effect_type == "food_storage":
+                    provides_food_storage += int(effect_value)
         self.food_storage = 20 + provides_food_storage
 
     def _process_city_tasks_on_round_end(self):
@@ -202,16 +206,58 @@ class City(Building):
         return self.unit_recruitment_blueprints_ui
 
     def start_city_improvement_construction(self, improvement_id):
-        print(f"Начато строительство улучшения города: {improvement_id}")
-        text = f"Начато строительство улучшения города: {improvement_id}"
-        self.game_manager.hud_manager.dynamic_message_manager.create_message(text)
-        self.city_improvements_in_progress_id = improvement_id
+        blueprint = self.city_improvement_blueprints[improvement_id]
+        player_resources = self.player.resources
+        message_text_parts = []
+
+        if self.city_improvements_in_progress_id:
+            previous_blueprint_id = self.city_improvements_in_progress_id
+            previous_blueprint = self.city_improvement_blueprints[previous_blueprint_id]
+            player_resources["gold"] += previous_blueprint.cost_gold
+            player_resources["wood"] += previous_blueprint.cost_wood
+            player_resources["stone"] += previous_blueprint.cost_stone
+            player_resources["metal"] += previous_blueprint.cost_metal
+            message_text_parts.append(
 
     def start_unit_recruitment(self, unit_type):
         print(f"Начат наем юнита: {unit_type}")
         text = f"Начат наем юнита: {unit_type}"
         self.game_manager.hud_manager.dynamic_message_manager.create_message(text)
         self.unit_recruitment_in_progress_id = unit_type
+        blueprint = self.unit_recruitment_blueprints_ui[unit_type]
+        player_resources = self.player.resources
+        message_text_parts = []
+
+        if self.unit_recruitment_in_progress_id:
+            previous_blueprint_id = self.unit_recruitment_in_progress_id
+            previous_blueprint = self.unit_recruitment_blueprints_ui[previous_blueprint_id]
+            player_resources["gold"] += previous_blueprint.cost_gold
+            player_resources["metal"] += previous_blueprint.cost_metal
+            player_resources["food"] += previous_blueprint.cost_food
+            message_text_parts.append(f"Возврат ресурсов за отмену: {previous_blueprint.name}")
+            self.unit_recruitment_in_progress_id = None
+
+        if (player_resources["gold"] >= blueprint.cost_gold and
+                player_resources["metal"] >= blueprint.cost_metal and
+                player_resources["food"] >= blueprint.cost_food):
+            player_resources["gold"] -= blueprint.cost_gold
+            player_resources["metal"] -= blueprint.cost_metal
+            player_resources["food"] -= blueprint.cost_food
+
+            self.game_manager.hud_manager.update_resource_values(
+                player_resources, self.player.income, self.player.expense)
+
+            message_text_parts.append(f"Начат наем юнита: {blueprint.name}")
+
+            self.unit_recruitment_in_progress_id = unit_type
+
+        else:
+            message_text_parts.append(f"Недостаточно ресурсов для найма юнита: {blueprint.name}")
+            self.unit_recruitment_in_progress_id = None
+
+        message_text = "\n".join(message_text_parts)
+        self.game_manager.hud_manager.dynamic_message_manager.create_message(message_text)
+        print(message_text.replace('\n', ' '))
 
     def complete_city_improvement_construction(self):
         if self.city_improvements_in_progress_id:
@@ -220,7 +266,7 @@ class City(Building):
                 improvement_id]
             print(f"Строительство улучшения города {improvement_id} завершено.")
             self.city_improvements_in_progress_id = None
-            self._apply_city_improvement_effects()
+            self.apply_city_improvement_effects()
 
     def complete_unit_recruitment(self):
         if self.unit_recruitment_in_progress_id:

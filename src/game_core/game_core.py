@@ -12,6 +12,30 @@ class Player:
         self.military = pygame.sprite.Group()
         self.buildings = pygame.sprite.Group()
 
+        self.resources = {
+            "gold": 2000,
+            "wood": 2000,
+            "stone": 2000,
+            "metal": 0,
+            "food": 20,
+        }
+
+        self.income = {
+            "gold": 0,
+            "wood": 0,
+            "stone": 0,
+            "metal": 0,
+            "food": 0,
+        }
+
+        self.expense = {
+            "gold": 0,
+            "wood": 0,
+            "stone": 0,
+            "metal": 0,
+            "food": 0,
+        }
+
         self.money = 0
 
     def __str__(self):
@@ -46,7 +70,11 @@ class GameManager:
         self.current_state = self.selecting_unit_state
         self.game_over = False
 
+        self.update_player_resources()
+        print(f"It's {self.get_current_player()}'s turn.")
+
     def next_player(self):
+        """Advances the game to the next player's turn and ends round if necessary."""
         if self.game_over:
             return
 
@@ -71,15 +99,13 @@ class GameManager:
         self.selected_unit = None
         self.current_state = self.selecting_unit_state
 
+        if (self.current_player_index + 1) % len(self.players) == 0:
+            self.end_round()
+
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
         print('=' * 50)
-
         print(f"It's {self.get_current_player()}'s turn.")
-
-        if self.current_player_index == 0 and len(
-                self.players) > 1:
-            self.end_round()
-            return
+        self.update_player_resources()
 
     def get_current_player(self):
         return self.players[self.current_player_index]
@@ -88,6 +114,7 @@ class GameManager:
         return player == self.get_current_player()
 
     def end_round(self):
+        """Ends the current round and initiates the next round."""
         print(f"--- End of Round {self.current_round} ---")
 
         for player in self.players_to_remove:
@@ -101,7 +128,54 @@ class GameManager:
 
         self.current_round += 1
         print(f"--- Starting Round {self.current_round} ---")
-        print(f"It's {self.get_current_player()}'s turn.")
+
+    def update_player_resources(self):
+        current_player = self.get_current_player()
+
+        current_player.income = {
+            "gold": 0,
+            "wood": 0,
+            "stone": 0,
+            "metal": 0,
+            "food": 0,
+        }
+        current_player.expense = {
+            "gold": 0,
+            "wood": 0,
+            "stone": 0,
+            "metal": 0,
+            "food": 0,
+        }
+
+        player_food_production = 0
+        player_gold_income = 0
+        player_stone_income = 0
+
+        for building in current_player.buildings:
+            player_food_production += building.food_production
+            player_gold_income += building.gold_income
+            player_stone_income += building.stone_income
+            building.apply_city_improvement_effects()
+
+        unit_food_consumption = len(current_player.units)
+        current_player.expense["food"] += unit_food_consumption
+
+        for res_type in current_player.resources:
+            current_player.resources[res_type] += current_player.income[res_type] - current_player.expense[res_type]
+            current_player.resources[res_type] = max(0, current_player.resources[
+                res_type])
+
+        print(f"{current_player} resources at the start of turn (Round {self.current_round}):")
+        print(
+            f"  Food: {current_player.resources['food']} (+{current_player.income['food']} - {current_player.expense['food']})")
+        print(
+            f"  Gold: {current_player.resources['gold']} (+{current_player.income['gold']} - {current_player.expense['gold']})")
+        print(
+            f"  Stone: {current_player.resources['stone']} (+{current_player.income['stone']} - {current_player.expense['stone']})")
+        print(f"  Wood: {current_player.resources['wood']}")
+        print(f"  Metal: {current_player.resources['metal']}")
+
+        self.hud_manager.update_resource_values(current_player.resources, current_player.income, current_player.expense)
 
     def process_mouse_click(self, pos):
         if not self.game_over:
