@@ -1,7 +1,6 @@
 import random
 
 import pygame
-from matplotlib.colors import NoNorm
 
 from src.utils import hex_utils
 from src.utils.utils import load_image
@@ -74,8 +73,8 @@ class Building(GameObject):
             self.hex_tile = None
         super().kill()
 
-    def attack_target(self, target_unit):  # Example attack method for buildings if they can attack
-        if not self.can_attack:  # If buildings are meant to attack, implement logic for can_attack and round resets
+    def attack_target(self, target_unit):
+        if not self.can_attack:
             print(f"{self} (Building) cannot attack yet or has already attacked.")
             return False
 
@@ -84,10 +83,10 @@ class Building(GameObject):
             print(f"{self} (Building) target out of attack range.")
             return False
 
-        damage_dealt = random.randint(self.min_damage, self.max_damage)  # Use min/max damage from blueprint
+        damage_dealt = random.randint(self.min_damage, self.max_damage)
         target_unit.take_damage(damage_dealt)
         print(f"{self} (Building) attacked {target_unit} for {damage_dealt} damage.")
-        self.can_attack = False  # If buildings attack once per round
+        self.can_attack = False
 
 
 class Unit(GameObject):
@@ -97,12 +96,14 @@ class Unit(GameObject):
         self.blueprint = blueprint
         self.player = player
         game_manager.all_units.add(self)
+
         if player.player_id == 1:
             game_manager.player_1_units.add(self)
         elif player.player_id == 2:
             game_manager.player_2_units.add(self)
         self.player.units.add(self)
         self.player.military.add(self)
+
         self.jump_offset = 0
         self.is_jumping = False
         self.selected = False
@@ -110,18 +111,21 @@ class Unit(GameObject):
         self.JUMP_HEIGHT = 10
         self.JUMP_INTERVAL = 60
         self.JUMP_SPEED = 1
+
         self.HEALTH_BAR_WIDTH = 40
         self.HEALTH_BAR_HEIGHT = 8
         self.HEALTH_BAR_OFFSET = 30
-
-        self.damage = blueprint.base_attack
-        self.damage_spread = 7
         self.hp = blueprint.base_health
         self.max_hp = blueprint.base_health
-        self.max_movement_range = 5
-        self.current_movement_range = 5
+
+        self.damage = blueprint.base_attack
+        self.damage_spread = blueprint.attack_spread
+        self.attack_range = blueprint.attack_range
+
+        self.max_movement_range = blueprint.movement_range
+        self.current_movement_range = self.max_movement_range
+
         self.can_attack = True
-        self.attack_range = 1
 
     @property
     def player_id(self):
@@ -250,19 +254,29 @@ class Unit(GameObject):
         self.can_attack = True
 
     def get_unit_info_text(self):
+        attack_range_str = ""
+        if self.attack_range > 1:
+            attack_range_str = f"<br><font color='#AAAAAA'>Attack range: {self.attack_range}</font>"
+
         return (
             f"<font color='#FFFFFF'><b>{self.blueprint.name}</b></font><br>"
             f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
             f"<font color='#AAAAAA'>Damage: {self.damage} (+/- {self.damage_spread})</font><br>"
             f"<font color='#AAAAAA'>Movement: {self.current_movement_range}/{self.max_movement_range}</font>"
+            f"{attack_range_str}"
         )
 
     def get_enemy_unit_info_text(self):
+        attack_range_str = ""
+        if self.attack_range > 1:
+            attack_range_str = f"<br><font color='#AAAAAA'>Attack range: {self.attack_range}</font>"
+
         return (
             f"<font color='#FF0000'><b>[ENEMY] {self.blueprint.name}</b></font><br>"
             f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
             f"<font color='#AAAAAA'>Damage: {self.damage} (+/- {self.damage_spread})</font><br>"
             f"<font color='#AAAAAA'>Movement: {self.current_movement_range}/{self.max_movement_range}</font>"
+            f"{attack_range_str}"
         )
 
     def draw_health_bar(self, surface, camera):

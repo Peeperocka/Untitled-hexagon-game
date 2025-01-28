@@ -165,8 +165,10 @@ class City(Building):
     @property
     def max_food_storage(self):
         base_storage = 20
+        for imp_id in self.city_improvements:
+            print(self.city_improvements[imp_id].provides)
         storage_bonus = sum(int(effect.split(':')[1]) for imp_id in self.city_improvements
-                            for effect in self.city_improvements[imp_id].blueprint.provides if
+                            for effect in self.city_improvements[imp_id].provides if
                             effect.startswith('food_storage:'))
         return base_storage + storage_bonus
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Type
+from typing import Type
 
 
 @dataclass
@@ -11,10 +11,11 @@ class UnitBlueprint:
     base_attack: int
     attack_spread: int
     attack_range: int
+    movement_range: int
     cost_gold: int
     cost_food: int
     cost_metal: int
-    requirements: List[str]
+    requirements: list[str]
     implementation_class: Type
 
 
@@ -28,8 +29,8 @@ class TileBuildingBlueprint:
     cost_wood: int
     cost_stone: int
     cost_metal: int
-    requirements: List[str]
-    provides: List[str]
+    requirements: list[str]
+    provides: dict
     implementation_class: str
     base_health: int = 100
     base_attack: int = 0
@@ -48,8 +49,8 @@ class CityBlueprint:
     cost_gold: int
     cost_wood: int
     cost_stone: int
-    requirements: List[str]
-    provides: List[str]
+    requirements: list[str]
+    provides: dict
     implementation_class: str
     base_health: int = 200
     base_attack: int = 15
@@ -65,8 +66,8 @@ class CityImprovementBlueprint:
     name: str
     description: str
     build_time: int
-    requirements: List[str]
-    provides: List[str]
+    requirements: list[str]
+    provides: dict
     cost_gold: int
     cost_wood: int = 0
     cost_stone: int = 0
