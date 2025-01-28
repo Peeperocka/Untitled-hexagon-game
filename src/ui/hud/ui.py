@@ -6,6 +6,106 @@ import pygame_gui
 
 from src.ui.windows.city_window import UICityWindow
 from src.ui.windows.game_pause import PauseMenu
+from src.utils.utils import load_image
+
+
+class ResourceDisplay:
+    def __init__(self, resource_type, initial_amount, position, ui_manager):
+        self.resource_type = resource_type
+        self.amount = initial_amount
+        self.position = position
+        self.ui_manager = ui_manager
+        self.padding = 5
+
+        image_path = os.path.join('icons', f'{resource_type}.png')
+        try:
+            self.image_surface = load_image(image_path)
+            self.image_surface = pygame.transform.scale(self.image_surface, (30, 30))
+        except ValueError:
+            self.image_surface = pygame.Surface((20, 20))
+            self.image_surface.fill('gray')
+        self.image_rect = self.image_surface.get_rect(topleft=position)
+
+        self.text_rect = pygame.Rect(
+            self.image_rect.topright,
+            (70, self.image_rect.height),
+        )
+        self.text_rect.x += self.padding
+        self.amount_label = pygame_gui.elements.UITextBox(
+            relative_rect=self.text_rect,
+            html_text=str(self.amount),
+            manager=self.ui_manager,
+            object_id=pygame_gui.core.ObjectID(class_id="@resource_amount_label"),
+        )
+
+    def update_amount(self, new_amount):
+        self.amount = new_amount
+        self.amount_label.html_text = str(self.amount)
+        self.amount_label.rebuild()
+
+    def draw(self, surface):
+        surface.blit(self.image_surface, self.image_rect)
+
+
+# noinspection PyTypeChecker
+class DynamicMessageManager:
+    def __init__(self, font):
+        self.messages = pygame.sprite.Group()
+        self.font = font
+        self.color = pygame.Color('white')
+
+    def create_message(self, text, position=None):
+        if not position:
+            position = pygame.mouse.get_pos()
+        message = FloatingMessage(text, position, self.font, self.color)
+        self.messages.add(message)
+
+    def update(self, time_delta):
+        self.messages.update(time_delta)
+
+    def draw(self, surface):
+        self.messages.draw(surface)
+
+
+class FloatingMessage(pygame.sprite.Sprite):
+    def __init__(self, text, position, font, color, lifespan=3.0, speed=(0, -10)):
+        super().__init__()
+        self.image = font.render(text, True, color)
+        self.rect = self.image.get_rect(topleft=position)
+        self.font = font
+        self.color = color
+        self.lifespan = lifespan
+        self.time_alive = 0
+        self.speed = speed
+
+    def update(self, time_delta):
+        self.time_alive += time_delta
+        self.rect.x += self.speed[0] * time_delta
+        self.rect.y += self.speed[1] * time_delta
+        self.image.set_alpha(int(255 * (1 - self.time_alive / self.lifespan)))
+        if self.time_alive >= self.lifespan:
+            self.kill()
+
+
+class MenuButton:
+    def __init__(self, screen_width, screen_height, ui_manager, menu_open_method):
+        self.ui_manager = ui_manager
+        self.menu_open_method = menu_open_method
+        self.button_width = 100
+        self.button_height = 50
+        self.button_rect = pygame.Rect(screen_width - self.button_width - 10,
+                                       10,
+                                       self.button_width,
+                                       self.button_height)
+        self.button = pygame_gui.elements.UIButton(relative_rect=self.button_rect,
+                                                   text='Menu',
+                                                   manager=self.ui_manager)
+
+    def process_event(self, event):
+        if event.type == pygame.USEREVENT:
+            if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == self.button:
+                    self.menu_open_method()
 
 
 class HUDManager:
@@ -22,11 +122,36 @@ class HUDManager:
         self._create_default_elements(screen_width, screen_height)
         self._create_menu_button(screen_width, screen_height)
         self._create_pause_menu(screen_width, screen_height)
+        self._create_resource_displays()
 
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.dim_surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
         self.dim_surface.fill((0, 0, 0, 128))
+
+    def _create_resource_displays(self):
+        """Creates resource icons and counters in the top-left corner."""
+        resource_types = ['gold', 'rock', 'wood', 'metal', 'food']
+        start_x = 10
+        start_y = 10
+        offset_x = 110
+
+        self.resource_displays = {}
+        for i, res_type in enumerate(resource_types):
+            x_pos = start_x + i * offset_x
+            res_display = ResourceDisplay(res_type, 100, (x_pos, start_y), self.ui_manager)
+            self.resource_displays[res_type] = res_display
+
+    def update_resource_values(self, resources: dict):
+        """Updates the displayed resource values.
+
+        Args:
+            resources (dict): A dictionary where keys are resource types
+                              and values are their amounts.
+        """
+        for res_type, amount in resources.items():
+            if res_type in self.resource_displays:
+                self.resource_displays[res_type].update_amount(amount)
 
     def _create_default_elements(self, screen_width, screen_height):
         unit_info_panel = pygame_gui.elements.UIPanel(
@@ -93,6 +218,8 @@ class HUDManager:
             surface.blit(self.dim_surface, (0, 0))
         self.ui_manager.draw_ui(surface)
         self.dynamic_message_manager.draw(surface)
+        for res_display in self.resource_displays.values():
+            res_display.draw(surface)
 
     def set_unit_info_text(self, text):
         if 'unit_info_text' in self.elements:
@@ -133,64 +260,3 @@ class HUDManager:
     def update_is_paused_from_menus(self):
         """Updates is_paused based on the visibility of both menus."""
         self.is_paused = self.pause_menu.is_visible or (self.city_window is not None and self.city_window.visible)
-
-
-# noinspection PyTypeChecker
-class DynamicMessageManager:
-    def __init__(self, font):
-        self.messages = pygame.sprite.Group()
-        self.font = font
-        self.color = pygame.Color('white')
-
-    def create_message(self, text, position=None):
-        if not position:
-            position = pygame.mouse.get_pos()
-        message = FloatingMessage(text, position, self.font, self.color)
-        self.messages.add(message)
-
-    def update(self, time_delta):
-        self.messages.update(time_delta)
-
-    def draw(self, surface):
-        self.messages.draw(surface)
-
-
-class FloatingMessage(pygame.sprite.Sprite):
-    def __init__(self, text, position, font, color, lifespan=3.0, speed=(0, -10)):
-        super().__init__()
-        self.image = font.render(text, True, color)
-        self.rect = self.image.get_rect(topleft=position)
-        self.font = font
-        self.color = color
-        self.lifespan = lifespan
-        self.time_alive = 0
-        self.speed = speed
-
-    def update(self, time_delta):
-        self.time_alive += time_delta
-        self.rect.x += self.speed[0] * time_delta
-        self.rect.y += self.speed[1] * time_delta
-        self.image.set_alpha(int(255 * (1 - self.time_alive / self.lifespan)))
-        if self.time_alive >= self.lifespan:
-            self.kill()
-
-
-class MenuButton:
-    def __init__(self, screen_width, screen_height, ui_manager, menu_open_method):
-        self.ui_manager = ui_manager
-        self.menu_open_method = menu_open_method
-        self.button_width = 100
-        self.button_height = 50
-        self.button_rect = pygame.Rect(screen_width - self.button_width - 10,
-                                       10,
-                                       self.button_width,
-                                       self.button_height)
-        self.button = pygame_gui.elements.UIButton(relative_rect=self.button_rect,
-                                                   text='Menu',
-                                                   manager=self.ui_manager)
-
-    def process_event(self, event):
-        if event.type == pygame.USEREVENT:
-            if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
-                if event.ui_element == self.button:
-                    self.menu_open_method()
