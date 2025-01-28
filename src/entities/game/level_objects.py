@@ -218,12 +218,35 @@ class City(Building):
             player_resources["stone"] += previous_blueprint.cost_stone
             player_resources["metal"] += previous_blueprint.cost_metal
             message_text_parts.append(
+                f"Возврат ресурсов за отмену: {previous_blueprint.name}")
+            self.city_improvements_in_progress_id = None
+
+        if (player_resources["gold"] >= blueprint.cost_gold and
+                player_resources["wood"] >= blueprint.cost_wood and
+                player_resources["stone"] >= blueprint.cost_stone and
+                player_resources["metal"] >= blueprint.cost_metal):
+
+            player_resources["gold"] -= blueprint.cost_gold
+            player_resources["wood"] -= blueprint.cost_wood
+            player_resources["stone"] -= blueprint.cost_stone
+            player_resources["metal"] -= blueprint.cost_metal
+
+            self.game_manager.hud_manager.update_resource_values(
+                player_resources, self.player.income, self.player.expense)
+
+            message_text_parts.append(f"Начато строительство: {blueprint.name}")
+
+            self.city_improvements_in_progress_id = improvement_id
+
+        else:
+            message_text_parts.append(f"Недостаточно ресурсов для строительства: {blueprint.name}")
+            self.city_improvements_in_progress_id = None
+
+        message_text = "\n".join(message_text_parts)
+        self.game_manager.hud_manager.dynamic_message_manager.create_message(message_text)
+        print(message_text.replace('\n', ' '))
 
     def start_unit_recruitment(self, unit_type):
-        print(f"Начат наем юнита: {unit_type}")
-        text = f"Начат наем юнита: {unit_type}"
-        self.game_manager.hud_manager.dynamic_message_manager.create_message(text)
-        self.unit_recruitment_in_progress_id = unit_type
         blueprint = self.unit_recruitment_blueprints_ui[unit_type]
         player_resources = self.player.resources
         message_text_parts = []
