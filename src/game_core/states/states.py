@@ -23,10 +23,11 @@ class GameState:
 class SelectingUnitState(GameState):
     def handle_mouse_click(self, pos):
         clicked_tile = self.board.get_click(pos, self.camera)
-        print(clicked_tile.unit, clicked_tile.building, 'bebra')
         if not clicked_tile:
             print("Clicked outside the grid.")
             return
+
+        self.board.selected_tile = clicked_tile
 
         if clicked_tile.unit:
             if self.game_manager.is_current_player(clicked_tile.unit.player):
@@ -34,12 +35,10 @@ class SelectingUnitState(GameState):
                 self.game_manager.selected_unit = clicked_tile.unit
                 self.game_manager.current_state = self.game_manager.unit_selected_state
                 self.game_manager.update_ui_for_selected_unit()
-                self.board.selected_tile = clicked_tile
                 self.board.highlighted_hexes = self.board.get_reachable_tiles(clicked_tile.unit)
             else:
                 self.game_manager.selected_unit = None
                 self.game_manager.selected_building = None
-                self.board.selected_tile = clicked_tile
                 self.board.path_to_target = []
                 self.unit_info_text.html_text = clicked_tile.unit.get_enemy_unit_info_text()
                 self.unit_info_text.rebuild()
@@ -52,21 +51,17 @@ class SelectingUnitState(GameState):
                 self.game_manager.selected_building = clicked_tile.building
                 self.game_manager.current_state = self.game_manager.building_selected_state
                 self.game_manager.update_ui_for_selected_building()
-                self.board.selected_tile = clicked_tile
                 self.board.highlighted_hexes = self.board.get_hexes_in_radius(clicked_tile,
                                                                               clicked_tile.building.attack_range)
             else:
                 self.game_manager.selected_unit = None
                 self.game_manager.selected_building = None
-                self.board.selected_tile = clicked_tile
                 self.board.path_to_target = []
                 self.unit_info_text.html_text = clicked_tile.building.get_enemy_unit_info_text()
                 self.unit_info_text.rebuild()
                 self.board.reachable_enemy_hexes = []
                 self.board.attackable_enemy_hexes = []
                 self.board.highlighted_hexes = []
-        else:
-            self._reset_selection()
 
 
 class UnitSelectedState(GameState):

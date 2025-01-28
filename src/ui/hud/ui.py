@@ -142,7 +142,9 @@ class DynamicMessageManager:
         self.font = font
         self.color = pygame.Color('white')
 
-    def create_message(self, text, position):
+    def create_message(self, text, position=None):
+        if not position:
+            position = pygame.mouse.get_pos()
         message = FloatingMessage(text, position, self.font, self.color)
         self.messages.add(message)
 

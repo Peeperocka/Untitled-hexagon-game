@@ -203,10 +203,14 @@ class City(Building):
 
     def start_city_improvement_construction(self, improvement_id):
         print(f"Начато строительство улучшения города: {improvement_id}")
+        text = f"Начато строительство улучшения города: {improvement_id}"
+        self.game_manager.hud_manager.dynamic_message_manager.create_message(text)
         self.city_improvements_in_progress_id = improvement_id
 
     def start_unit_recruitment(self, unit_type):
         print(f"Начат наем юнита: {unit_type}")
+        text = f"Начат наем юнита: {unit_type}"
+        self.game_manager.hud_manager.dynamic_message_manager.create_message(text)
         self.unit_recruitment_in_progress_id = unit_type
 
     def complete_city_improvement_construction(self):
@@ -220,7 +224,8 @@ class City(Building):
 
     def complete_unit_recruitment(self):
         if self.unit_recruitment_in_progress_id:
+            from src.utils.factories import GameEntityFactory
             unit_id = self.unit_recruitment_in_progress_id
             print(f"Наем юнита {unit_id} завершен.")
-            self.game_manager.create_unit(unit_id, self.hex_tile, self.player)
+            GameEntityFactory.create_unit(unit_id, self.hex_tile, self.player, self.game_manager)
             self.unit_recruitment_in_progress_id = None

@@ -9,8 +9,11 @@ class UnitBlueprint:
     description: str
     base_health: int
     base_attack: int
+    attack_spread: int
+    attack_range: int
     cost_gold: int
     cost_food: int
+    cost_metal: int
     requirements: List[str]
     implementation_class: Type
 
@@ -24,6 +27,7 @@ class TileBuildingBlueprint:
     cost_gold: int
     cost_wood: int
     cost_stone: int
+    cost_metal: int
     requirements: List[str]
     provides: List[str]
     implementation_class: str
@@ -61,8 +65,9 @@ class CityImprovementBlueprint:
     name: str
     description: str
     build_time: int
-    cost_gold: int
-    cost_wood: int
-    cost_stone: int
     requirements: List[str]
     provides: List[str]
+    cost_gold: int
+    cost_wood: int = 0
+    cost_stone: int = 0
+    cost_metal: int = 0
