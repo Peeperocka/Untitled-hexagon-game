@@ -151,11 +151,9 @@ class City(Building):
 
     def _process_city_tasks_on_round_end(self):
         if self.city_improvements_in_progress_id:
-            improvement_blueprint = self.city_improvement_blueprints[self.city_improvements_in_progress_id]
             self.complete_city_improvement_construction()
 
         if self.unit_recruitment_in_progress_id:
-            unit_blueprint = UNIT_BLUEPRINTS[self.unit_recruitment_in_progress_id]
             self.complete_unit_recruitment()
 
         self.food_storage += self.food_production
