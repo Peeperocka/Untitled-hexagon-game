@@ -38,6 +38,9 @@ class Player:
 
         self.money = 0
 
+        self.camera_x = 0
+        self.camera_y = 0
+
     def __str__(self):
         return f"Player {self.player_id}"
 
@@ -92,6 +95,10 @@ class GameManager:
                 print("Game Over! It's a draw (no players left).")
             return
 
+        current_player = self.get_current_player()
+        current_player.camera_x = self.camera.x
+        current_player.camera_y = self.camera.y
+
         for player in self.players:
             for unit in player.units:
                 unit.selected = False
@@ -103,6 +110,11 @@ class GameManager:
             self.end_round()
 
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
+
+        next_player = self.get_current_player()
+        self.camera.x = next_player.camera_x
+        self.camera.y = next_player.camera_y
+
         print('=' * 50)
         print(f"It's {self.get_current_player()}'s turn.")
         self.update_player_resources()
