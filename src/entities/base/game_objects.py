@@ -34,9 +34,9 @@ class GameObject(pygame.sprite.Sprite):
 
 
 class Building(GameObject):
-    def __init__(self, hex_tile, blueprint: TileBuildingBlueprint, game_manager, player,
+    def __init__(self, hex_tile, city_id: str, blueprint: TileBuildingBlueprint, game_manager, player,
                  image_subdir='level_objects'):
-        super().__init__(hex_tile, blueprint.name.lower() + ".png", (90, 90), game_manager, player,
+        super().__init__(hex_tile, city_id + ".png", (90, 90), game_manager, player,
                          image_subdir)
         self.blueprint = blueprint
         self.hex_tile.unit = None
@@ -90,8 +90,8 @@ class Building(GameObject):
 
 
 class Unit(GameObject):
-    def __init__(self, hex_tile, blueprint: UnitBlueprint, player, game_manager):
-        super().__init__(hex_tile, blueprint.name.lower() + ".png", (70, 70), game_manager, player,
+    def __init__(self, hex_tile, unit_id: str, blueprint: UnitBlueprint, player, game_manager):
+        super().__init__(hex_tile, unit_id + '.png', (70, 70), game_manager, player,
                          image_subdir='units')
         self.blueprint = blueprint
         self.player = player

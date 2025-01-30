@@ -15,10 +15,10 @@ class City(Building):
     Manages city improvements internally, not as tile objects.
     """
 
-    def __init__(self, hex_tile, player, game_manager, blueprint: CityBlueprint):
-        super().__init__(hex_tile, blueprint, game_manager, player)
+    def __init__(self, hex_tile, city_id: str, blueprint, game_manager, player):
+        super().__init__(hex_tile, city_id, blueprint, game_manager, player)
         self.image = pygame.transform.scale(
-            load_image(blueprint.name.lower() + ".png", subdir="level_objects"), (90, 90))
+            load_image(city_id + '.png', subdir="level_objects"), (90, 90))
         self.player = player
 
         self.max_hp = blueprint.base_health

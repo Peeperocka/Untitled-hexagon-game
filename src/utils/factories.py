@@ -11,7 +11,7 @@ class GameEntityFactory:
     def create_unit(unit_id: str, hex_tile, player, game_manager) -> Unit:
         blueprint = UNIT_BLUEPRINTS[unit_id]
         implementation_class = blueprint.implementation_class
-        return implementation_class(hex_tile, player, game_manager, blueprint)
+        return implementation_class(hex_tile, player, game_manager, unit_id, blueprint)
 
     @staticmethod
     def create_city(city_id: str, hex_tile, player, game_manager) -> Building:
@@ -21,7 +21,7 @@ class GameEntityFactory:
             implementation_class = City
         else:
             raise ValueError(f"Unknown city implementation class: {implementation_class_name}")
-        return implementation_class(hex_tile, player, game_manager, blueprint)
+        return implementation_class(hex_tile, city_id, blueprint, game_manager, player)
 
     @staticmethod
     def create_tile_building(building_id: str, hex_tile, player, game_manager) -> Building:
