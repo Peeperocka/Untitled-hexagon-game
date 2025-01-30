@@ -7,6 +7,7 @@ import pygame_gui
 from src.ui.windows.city_window import UICityWindow
 from src.ui.windows.game_over_menu import GameOverMenu
 from src.ui.windows.game_pause import PauseMenu
+from src.ui.windows.player_splash_screen import PlayerTurnSplashScreen
 from src.utils.utils import load_image
 
 
@@ -132,6 +133,8 @@ class HUDManager:
         self.city_window = None
         self.is_paused = False
         self.game_over_menu = None
+        self.splash_screen = PlayerTurnSplashScreen(
+            screen_width, screen_height, self.ui_manager)
 
         self._create_default_elements(screen_width, screen_height)
         self._create_menu_button(screen_width, screen_height)
@@ -234,20 +237,25 @@ class HUDManager:
         if event.type == pygame_gui.UI_WINDOW_CLOSE:
             if self.city_window is not None and event.ui_element == self.city_window:
                 self.close_city_window_internal()
+        if self.splash_screen.is_visible:
+            if self.splash_screen.process_event(event):
+                return
 
     def update(self, time_delta):
         self.ui_manager.update(time_delta)
         self.dynamic_message_manager.update(time_delta)
         if self.city_window is not None and self.city_window.visible:
             self.city_window.update(time_delta)
+        self.splash_screen.update(time_delta)
 
     def draw(self, surface):
-        if self.is_paused or self.game_over_menu.is_visible:
+        if self.is_paused or self.game_over_menu.is_visible or self.splash_screen.is_visible:
             surface.blit(self.dim_surface, (0, 0))
         self.ui_manager.draw_ui(surface)
         self.dynamic_message_manager.draw(surface)
         for res_display in self.resource_displays.values():
             res_display.draw(surface)
+        self.splash_screen.draw(surface)
 
     def set_unit_info_text(self, text):
         if 'unit_info_text' in self.elements:
@@ -293,3 +301,11 @@ class HUDManager:
         self.is_paused = True
         self.game_over_menu.set_message(message)
         self.game_over_menu.show()
+
+    def show_player_turn_splash_screen(self, player_name):
+        """Shows the player turn splash screen."""
+        self.splash_screen.show(player_name)
+
+    def hide_player_turn_splash_screen(self):
+        """Hides the player turn splash screen."""
+        self.splash_screen.hide()

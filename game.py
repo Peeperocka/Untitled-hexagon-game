@@ -143,7 +143,7 @@ def main_gamer(screen, width, height):
                 running = False
 
             hud_manager.process_event(event)
-            if hud_manager.is_paused:
+            if hud_manager.is_paused or hud_manager.splash_screen.is_visible:
                 continue
 
             if event.type == pygame.KEYDOWN:

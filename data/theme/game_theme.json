@@ -60,6 +60,47 @@
     {
         "prototype": "#default_shape_style"
     },
+    "@splash_screen_panel":
+    {
+        "colors":
+        {
+            "dark_bg": "#00000000",
+            "selected_bg": "#00000000",
+            "normal_border": "#00000000",
+            "hovered_border": "#00000000",
+            "disabled_border": "#00000000",
+            "selected_border": "#00000000",
+            "active_border": "#00000000"
+        },
+        "misc":
+        {
+            "shape": "rectangle",
+            "border_width": "0",
+            "shadow_width": "0",
+            "shape_corner_radius": "2",
+            "text_horiz_alignment_padding": "0"
+        }
+    },
+    "@splash_screen_text":
+    {
+        "font":
+        {
+            "size": 40
+        },
+        "colors":
+        {
+            "dark_bg": "#80A6FF80",
+            "selected_bg": "#80A6FF80",
+            "normal_border": "#80A6FF80",
+            "selected_text": "#80A6FF80"
+        },
+        "misc":
+        {
+            "text_horiz_alignment": "center",
+            "border_width": 0,
+            "shadow_width": 0
+        }
+    },
 	"@resource_amount_label":
 	{
 		"colours":

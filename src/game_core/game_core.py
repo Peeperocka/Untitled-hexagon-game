@@ -112,6 +112,7 @@ class GameManager:
 
         print('=' * 50)
         if self.players:
+            self.hud_manager.show_player_turn_splash_screen(current_player)
             print(f"It's {self.get_current_player()}'s turn.")
             self.update_player_resources()
 

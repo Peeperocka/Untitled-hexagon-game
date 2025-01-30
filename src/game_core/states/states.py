@@ -1,6 +1,3 @@
-from src.entities.game.level_objects import City
-
-
 class GameState:
     def __init__(self, game_manager, board, camera, hud_manager):
         self.game_manager = game_manager
