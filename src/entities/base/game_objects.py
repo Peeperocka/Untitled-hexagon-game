@@ -126,6 +126,8 @@ class Unit(GameObject):
         self.current_movement_range = self.max_movement_range
 
         self.can_attack = True
+        self.is_dug_in = False
+        self.dug_in_regen_amount = 10
 
     @property
     def player_id(self):
@@ -193,14 +195,14 @@ class Unit(GameObject):
 
     def attack(self, target_unit, mouse_pos):
         if not self.can_attack:
-            text = 'Unit has already attacked this round.'
+            text = 'Юнит уже атаковал в этом раунде'
             self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(f"{self} has already attacked this round.")
             return False
 
         distance = hex_utils.cube_distance(self.hex_tile, target_unit.hex_tile)
         if distance > self.attack_range:
-            text = f"Out of attack range."
+            text = f"Вне радиуса атаки"
             self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(text)
             return False
@@ -211,17 +213,18 @@ class Unit(GameObject):
         print(f"{self} attacked {target_unit} for {damage_dealt} damage.")
         self.can_attack = False
         self.current_movement_range = 0
+        self.is_dug_in = False
         return True
 
     def move_to(self, target_tile, board, mouse_pos):
         if target_tile == self.hex_tile:
-            text = "Already on this tile."
+            text = "Уже в этом тайле"
             self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(text)
             return False
 
         if target_tile.unit is not None:
-            text = "Tile is occupied."
+            text = "Тайл занят"
             self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(text)
             return False
@@ -236,15 +239,16 @@ class Unit(GameObject):
                 self.current_movement_range -= movement_cost
                 print(
                     f"Unit moved to: q={self.hex_tile.q}, r={self.hex_tile.r}, s={self.hex_tile.s}. Remaining movement: {self.current_movement_range}")
+                self.is_dug_in = False
                 return True
             else:
-                text = (f"Not enough movement range to reach the target.\n"
-                        f"Remaining: {self.current_movement_range}, needed: {movement_cost}")
+                text = (f"Для достижения цели не хватает ОД.\n"
+                        f"Осталось: {self.current_movement_range}, нужно: {movement_cost}")
                 self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
                 print(text)
                 return False
         else:
-            text = "Target tile is unreachable."
+            text = "Целевой тайл недостижим"
             self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
             print(text)
             return False
@@ -252,31 +256,43 @@ class Unit(GameObject):
     def on_round_end(self):
         self.current_movement_range = self.max_movement_range
         self.can_attack = True
+        if self.is_dug_in:
+            self.hp = min(self.max_hp, self.hp + self.dug_in_regen_amount)
 
     def get_unit_info_text(self):
         attack_range_str = ""
         if self.attack_range > 1:
-            attack_range_str = f"<br><font color='#AAAAAA'>Attack range: {self.attack_range}</font>"
+            attack_range_str = f"<br><font color='#AAAAAA'>Радиус атаки: {self.attack_range}</font>"
+
+        dug_in_str = ""
+        if self.is_dug_in:
+            dug_in_str = "<br><font color='#00FF00'>Окопался</font>"
 
         return (
             f"<font color='#FFFFFF'><b>{self.blueprint.name}</b></font><br>"
-            f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
-            f"<font color='#AAAAAA'>Damage: {self.damage} (+/- {self.damage_spread})</font><br>"
-            f"<font color='#AAAAAA'>Movement: {self.current_movement_range}/{self.max_movement_range}</font>"
+            f"<font color='#AAAAAA'>ОЗ: {self.hp}/{self.max_hp}</font><br>"
+            f"<font color='#AAAAAA'>Урон: {self.damage} (+/- {self.damage_spread})</font><br>"
+            f"<font color='#AAAAAA'>ОД: {self.current_movement_range}/{self.max_movement_range}</font>"
             f"{attack_range_str}"
+            f"{dug_in_str}"
         )
 
     def get_enemy_unit_info_text(self):
         attack_range_str = ""
         if self.attack_range > 1:
-            attack_range_str = f"<br><font color='#AAAAAA'>Attack range: {self.attack_range}</font>"
+            attack_range_str = f"<br><font color='#AAAAAA'>Радиус атаки: {self.attack_range}</font>"
+
+        dug_in_str = ""
+        if self.is_dug_in:
+            dug_in_str = "<br><font color='#00FF00'>Окопался</font>"
 
         return (
-            f"<font color='#FF0000'><b>[ENEMY] {self.blueprint.name}</b></font><br>"
-            f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
-            f"<font color='#AAAAAA'>Damage: {self.damage} (+/- {self.damage_spread})</font><br>"
-            f"<font color='#AAAAAA'>Movement: {self.current_movement_range}/{self.max_movement_range}</font>"
+            f"<font color='#FF0000'><b>[ВРАГ] {self.blueprint.name}</b></font><br>"
+            f"<font color='#AAAAAA'>ОЗ: {self.hp}/{self.max_hp}</font><br>"
+            f"<font color='#AAAAAA'>Урон: {self.damage} (+/- {self.damage_spread})</font><br>"
+            f"<font color='#AAAAAA'>ОД: {self.current_movement_range}/{self.max_movement_range}</font>"
             f"{attack_range_str}"
+            f"{dug_in_str}"
         )
 
     def draw_health_bar(self, surface, camera):

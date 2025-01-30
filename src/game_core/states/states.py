@@ -110,7 +110,7 @@ class BuildingSelectedState(GameState):
             self._reset_selection()
             self.game_manager.current_state = self.game_manager.selecting_unit_state
         elif clicked_tile.unit and not self.game_manager.is_current_player(clicked_tile.unit.player):
-            if selected_building.attack_unit(clicked_tile.unit, pos):
+            if selected_building.attack_unit(clicked_tile.unit):
                 self._reset_selection()
                 self.game_manager.current_state = self.game_manager.selecting_unit_state
         elif clicked_tile.building and not self.game_manager.is_current_player(clicked_tile.building.player):

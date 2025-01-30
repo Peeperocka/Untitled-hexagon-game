@@ -308,3 +308,22 @@ class GameManager:
                         city.hex_tile,
                         city.attack_range
                     )
+            if event.key == pygame.K_g:
+                if self.selected_unit and self.is_current_player(self.selected_unit.player):
+                    if self.selected_unit.can_attack and not self.selected_unit.is_dug_in:
+                        self.selected_unit.is_dug_in = True
+                        self.selected_unit.can_attack = False
+                        self.selected_unit.current_movement_range = 0
+                        text = f"{self.selected_unit.blueprint.name} окопался!"
+                        self.hud_manager.dynamic_message_manager.create_message(text, self.selected_unit.rect.center)
+                        self.deselect_unit()
+                        print(text)
+                        self.update_ui_for_selected_unit()
+                    elif self.selected_unit.is_dug_in:
+                        text = f"{self.selected_unit.blueprint.name} уже окопался!"
+                        self.hud_manager.dynamic_message_manager.create_message(text, self.selected_unit.rect.center)
+                        print(text)
+                    elif not self.selected_unit.can_attack:
+                        text = f"{self.selected_unit.blueprint.name} не может окопаться т/к атаковал!"
+                        self.hud_manager.dynamic_message_manager.create_message(text, self.selected_unit.rect.center)
+                        print(text)

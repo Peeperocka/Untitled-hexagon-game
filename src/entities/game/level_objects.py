@@ -56,18 +56,18 @@ class City(Building):
         if self.hp <= 0:
             self.destroy()
 
-    def attack_unit(self, target_unit, mouse_pos):
+    def attack_unit(self, target_unit):
         if not target_unit:
             return False
         if not self.can_attack:
-            text = 'City has already attacked this round.'
-            self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
+            text = 'Город уже атаковал в этом раунде'
+            self.game_manager.hud_manager.dynamic_message_manager.create_message(text)
             print(f"{self} has already attacked this round.")
             return False
         distance = hex_utils.cube_distance(self.hex_tile, target_unit.hex_tile)
         if distance > self.attack_range:
-            text = f"Out of attack range."
-            self.game_manager.hud_manager.dynamic_message_manager.create_message(text, mouse_pos)
+            text = f"Вне радиуса атаки"
+            self.game_manager.hud_manager.dynamic_message_manager.create_message(text)
             print(text)
             return False
         damage = random.randint(self.min_damage, self.max_damage)
@@ -104,19 +104,19 @@ class City(Building):
     def get_unit_info_text(self):
         return (
             f"<font color='#FFFFFF'><b>{self.blueprint.name}</b></font><br>"
-            f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
-            f"<font color='#AAAAAA'>Attack: {self.min_damage}-{self.max_damage}</font><br>"
-            f"<font color='#AAAAAA'>Defense: {self.defense}</font><br>"
-            f"<font color='#AAAAAA'>Attack Range: {self.attack_range}</font>"
+            f"<font color='#AAAAAA'>ОЗ: {self.hp}/{self.max_hp}</font><br>"
+            f"<font color='#AAAAAA'>Урон: {self.min_damage}-{self.max_damage}</font><br>"
+            f"<font color='#AAAAAA'>Защита: {self.defense}</font><br>"
+            f"<font color='#AAAAAA'>Радиус атаки: {self.attack_range}</font>"
         )
 
     def get_enemy_unit_info_text(self):
         return (
-            f"<font color='#FF0000'><b>[ENEMY] {self.blueprint.name}</b></font><br>"
-            f"<font color='#AAAAAA'>HP: {self.hp}/{self.max_hp}</font><br>"
-            f"<font color='#AAAAAA'>Attack: {self.min_damage}-{self.max_damage}</font><br>"
-            f"<font color='#AAAAAA'>Defense: {self.defense}</font><br>"
-            f"<font color='#AAAAAA'>Attack Range: {self.attack_range}</font>"
+            f"<font color='#FF0000'><b>[ВРАГ] {self.blueprint.name}</b></font><br>"
+            f"<font color='#AAAAAA'>ОЗ: {self.hp}/{self.max_hp}</font><br>"
+            f"<font color='#AAAAAA'>Урон: {self.min_damage}-{self.max_damage}</font><br>"
+            f"<font color='#AAAAAA'>Защита: {self.defense}</font><br>"
+            f"<font color='#AAAAAA'>Радиус атаки: {self.attack_range}</font>"
         )
 
     def on_round_end(self):
