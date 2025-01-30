@@ -82,25 +82,10 @@ class GameManager:
         if self.game_over:
             return
 
-        self.players_to_remove = []
-        for player in self.players:
-            if not player.military:
-                print(f"{player} has lost the game_core!")
-                self.players_to_remove.append(player)
-
-        if len(self.players) <= 1:
-            self.game_over = True
-            if self.players:
-                self.game_over_message = f"Game Over! {self.players[0]} is the winner!"
-                print(f"Game Over! {self.players[0]} is the winner!")
-            else:
-                self.game_over_message = "Game Over! It's a draw (no players left)."
-                print("Game Over! It's a draw (no players left).")
-            return
-
         current_player = self.get_current_player()
-        current_player.camera_x = self.camera.x
-        current_player.camera_y = self.camera.y
+        if current_player:
+            current_player.camera_x = self.camera.x
+            current_player.camera_y = self.camera.y
 
         for player in self.players:
             for unit in player.units:
@@ -111,29 +96,60 @@ class GameManager:
 
         if (self.current_player_index + 1) % len(self.players) == 0:
             self.end_round()
+            if self.game_over:
+                return
 
-        self.current_player_index = (self.current_player_index + 1) % len(self.players)
-
-        next_player = self.get_current_player()
-        self.camera.x = next_player.camera_x
-        self.camera.y = next_player.camera_y
+        if self.players:
+            self.current_player_index = (self.current_player_index + 1) % len(self.players)
+            if self.current_player_index >= len(self.players):
+                self.current_player_index = 0
+            next_player = self.get_current_player()
+            if next_player:
+                self.camera.x = next_player.camera_x
+                self.camera.y = next_player.camera_y
+        else:
+            return
 
         print('=' * 50)
-        print(f"It's {self.get_current_player()}'s turn.")
-        self.update_player_resources()
+        if self.players:
+            print(f"It's {self.get_current_player()}'s turn.")
+            self.update_player_resources()
 
     def get_current_player(self):
-        return self.players[self.current_player_index]
+        if self.players:
+            return self.players[self.current_player_index]
+        return None
 
     def is_current_player(self, player):
-        return player == self.get_current_player()
+        current_player = self.get_current_player()
+        return current_player is not None and player == current_player
 
     def end_round(self):
         """Ends the current round and initiates the next round."""
         print(f"--- End of Round {self.current_round} ---")
 
+        self.players_to_remove = []
+        for player in self.players:
+            if not player.military:
+                self.players_to_remove.append(player)
+                print(f"{player} has lost the game!")
+
         for player in self.players_to_remove:
+            if self.current_player_index >= len(self.players):
+                self.current_player_index = 0
             self.players.remove(player)
+            if self.current_player_index >= len(self.players):
+                self.current_player_index = 0
+
+        if len(self.players) <= 1:
+            self.game_over = True
+            if self.players:
+                self.game_over_message = f"Game Over! {self.players[0]} is the winner!"
+                print(f"Game Over! {self.players[0]} is the winner!")
+            else:
+                self.game_over_message = "Game Over! It's a draw (no players left)."
+                print("Game Over! It's a draw (no players left).")
+            return
 
         for player in self.players:
             for unit in player.units:
@@ -146,6 +162,8 @@ class GameManager:
 
     def update_player_resources(self):
         current_player = self.get_current_player()
+        if not current_player:
+            return
 
         current_player.income = {
             "gold": 0,
@@ -279,7 +297,7 @@ class GameManager:
             if event.key == pygame.K_q:
                 if self.board.selected_tile and self.board.selected_tile.building and isinstance(
                         self.board.selected_tile.building,
-                        City) and self.get_current_player() == self.board.selected_tile.building.player:
+                        City) and self.is_current_player(self.board.selected_tile.building.player):
                     city = self.board.selected_tile.building
                     self.hud_manager.open_city_window(city)
                     self.selected_building = city
