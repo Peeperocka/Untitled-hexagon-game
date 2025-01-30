@@ -50,6 +50,48 @@ def place_units_for_testing(board, player1, player2, player1_units_data, player2
             print(f"Could not place unit {unit_id} at {hex_coords} for Player 2.")
 
 
+def restart_game():
+    global game_manager, hud_manager, camera, board, player1, player2, all_sprites, \
+        all_units, player_1_units, player_2_units, military_objects
+
+    all_sprites.empty()
+    all_units.empty()
+    player_1_units.empty()
+    player_2_units.empty()
+    military_objects.empty()
+
+    camera.x = 0
+    camera.y = 0
+
+    board = HexBoard(20, 20, 50)
+    player1 = Player(1)
+    player2 = Player(2)
+    players = [player1, player2]
+    game_manager = GameManager(players, board, camera, hud_manager)
+    board.game_manager = game_manager
+
+    all_sprites = game_manager.all_sprites
+    all_units = game_manager.all_units
+    player_1_units = game_manager.player_1_units
+    player_2_units = game_manager.player_2_units
+    military_objects = game_manager.military
+
+    player1_data = [
+        ("cavalry", (0, 0, 0)),
+        ("cavalry", (-1, 3, -2)),
+        ("archer", (-1, 1, 0)),
+        ("crossbowman", (-1, 2, -1)),
+    ]
+    player2_data = [
+        ("warrior", (3, 0, -3)),
+        ("warrior", (3, 1, -4)),
+        ("warrior", (2, 2, -4)),
+    ]
+    place_units_for_testing(board, player1, player2, player1_data, player2_data)
+
+    print("Game restarted!")
+
+
 def main_gamer(screen, width, height):
     global game_manager, hud_manager, camera, board, player1, player2, all_sprites, \
         all_units, player_1_units, player_2_units, military_objects
@@ -59,7 +101,7 @@ def main_gamer(screen, width, height):
 
     camera = Camera(width, height, 20)
     font = pygame.font.Font(None, 20)
-    hud_manager = HUDManager(width, height, font)
+    hud_manager = HUDManager(width, height, font, restart_game)
     clock = pygame.time.Clock()
 
     board = HexBoard(20, 20, 50)
@@ -142,6 +184,9 @@ def main_gamer(screen, width, height):
             sprite.render(screen, camera)
 
         hud_manager.draw(screen)
+
+        if game_manager.game_over:
+            hud_manager.show_game_over_menu(game_manager.game_over_message)
 
         pygame.display.flip()
 

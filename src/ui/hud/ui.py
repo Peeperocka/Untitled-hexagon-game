@@ -5,6 +5,7 @@ import pygame
 import pygame_gui
 
 from src.ui.windows.city_window import UICityWindow
+from src.ui.windows.game_over_menu import GameOverMenu
 from src.ui.windows.game_pause import PauseMenu
 from src.utils.utils import load_image
 
@@ -120,8 +121,9 @@ class MenuButton:
 
 
 class HUDManager:
-    def __init__(self, screen_width, screen_height, font):
+    def __init__(self, screen_width, screen_height, font, restart_game_method):
         self.font = font
+        self.restart_game_method = restart_game_method
 
         self.ui_manager = pygame_gui.UIManager((screen_width, screen_height),
                                                os.path.join('data', 'theme', 'game_theme.json'))
@@ -129,11 +131,13 @@ class HUDManager:
         self.elements = {}
         self.city_window = None
         self.is_paused = False
+        self.game_over_menu = None
 
         self._create_default_elements(screen_width, screen_height)
         self._create_menu_button(screen_width, screen_height)
         self._create_pause_menu(screen_width, screen_height)
         self._create_resource_displays()
+        self._create_game_over_menu(screen_width, screen_height)
 
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -191,6 +195,10 @@ class HUDManager:
         self.pause_menu = PauseMenu(screen_width, screen_height, self.ui_manager,
                                     self.unpause_game, self.save_game, self.exit_game)
 
+    def _create_game_over_menu(self, screen_width, screen_height):
+        self.game_over_menu = GameOverMenu(screen_width, screen_height, self.ui_manager,
+                                           self.restart_game, self.exit_game)
+
     def toggle_pause_menu(self):
         self.is_paused = not self.is_paused
         if self.is_paused:
@@ -210,12 +218,19 @@ class HUDManager:
         pygame.quit()
         sys.exit()
 
+    def restart_game(self):
+        self.is_paused = False
+        self.game_over_menu.hide()
+        self.restart_game_method()
+
     def process_event(self, event):
         self.ui_manager.process_events(event)
         if 'menu_button' in self.elements:
             self.elements['menu_button'].process_event(event)
         if self.is_paused:
             self.pause_menu.process_event(event)
+        if self.game_over_menu.is_visible:
+            self.game_over_menu.process_event(event)
         if event.type == pygame_gui.UI_WINDOW_CLOSE:
             if self.city_window is not None and event.ui_element == self.city_window:
                 self.close_city_window_internal()
@@ -227,7 +242,7 @@ class HUDManager:
             self.city_window.update(time_delta)
 
     def draw(self, surface):
-        if self.is_paused:
+        if self.is_paused or self.game_over_menu.is_visible:
             surface.blit(self.dim_surface, (0, 0))
         self.ui_manager.draw_ui(surface)
         self.dynamic_message_manager.draw(surface)
@@ -273,3 +288,8 @@ class HUDManager:
     def update_is_paused_from_menus(self):
         """Updates is_paused based on the visibility of both menus."""
         self.is_paused = self.pause_menu.is_visible or (self.city_window is not None and self.city_window.visible)
+
+    def show_game_over_menu(self, message):
+        self.is_paused = True
+        self.game_over_menu.set_message(message)
+        self.game_over_menu.show()

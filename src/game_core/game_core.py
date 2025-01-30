@@ -72,6 +72,7 @@ class GameManager:
 
         self.current_state = self.selecting_unit_state
         self.game_over = False
+        self.game_over_message = ""
 
         self.update_player_resources()
         print(f"It's {self.get_current_player()}'s turn.")
@@ -90,8 +91,10 @@ class GameManager:
         if len(self.players) <= 1:
             self.game_over = True
             if self.players:
+                self.game_over_message = f"Game Over! {self.players[0]} is the winner!"
                 print(f"Game Over! {self.players[0]} is the winner!")
             else:
+                self.game_over_message = "Game Over! It's a draw (no players left)."
                 print("Game Over! It's a draw (no players left).")
             return
 
