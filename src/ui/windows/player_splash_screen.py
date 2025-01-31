@@ -31,7 +31,7 @@ class PlayerTurnSplashScreen:
 
     def show(self, player_name):
         self.is_visible = True
-        self.player_name_text = f"<font color=#FFFFFF>Player Turn:\n<b>{player_name}</b></font>"
+        self.player_name_text = f"<font color=#FFFFFF>Сейчас ходит:\n<b>{player_name}</b></font>"
         self.player_name_label.html_text = self.player_name_text
         self.player_name_label.rebuild()
         self.panel.show()

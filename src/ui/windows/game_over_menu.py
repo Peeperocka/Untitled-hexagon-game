@@ -9,7 +9,7 @@ class GameOverMenu:
         self.exit_method = exit_method
         self.is_visible = False
 
-        self.window_width = 300
+        self.window_width = 400
         self.window_height = 300
         self.window_rect = pygame.Rect(
             (screen_width - self.window_width) // 2,
