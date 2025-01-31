@@ -184,7 +184,7 @@ class HUDManager:
 
         unit_info_text = pygame_gui.elements.UITextBox(
             relative_rect=pygame.Rect((10, 10), (260, 160)),
-            html_text="Select a unit to see information.",
+            html_text="Выберите юнита для подробной информации.",
             manager=self.ui_manager,
             container=unit_info_panel,
             object_id=pygame_gui.core.ObjectID(class_id="@unit_info_text")
@@ -200,8 +200,9 @@ class HUDManager:
                                     self.unpause_game, self.save_game, self.exit_game)
 
     def _create_game_over_menu(self, screen_width, screen_height):
-        self.game_over_menu = GameOverMenu(screen_width, screen_height, self.ui_manager,
-                                           self.restart_game, self.exit_game)
+        self._game_over_menu = GameOverMenu(screen_width, screen_height, self.ui_manager,
+                                            self.restart_game, self.exit_game)
+        self.game_over_menu = self._game_over_menu
 
     def toggle_pause_menu(self):
         self.is_paused = not self.is_paused
@@ -224,7 +225,7 @@ class HUDManager:
 
     def restart_game(self):
         self.is_paused = False
-        self.game_over_menu.hide()
+        self._game_over_menu.hide()
         self.restart_game_method()
 
     def process_event(self, event):
@@ -233,8 +234,8 @@ class HUDManager:
             self.elements['menu_button'].process_event(event)
         if self.is_paused:
             self.pause_menu.process_event(event)
-        if self.game_over_menu.is_visible:
-            self.game_over_menu.process_event(event)
+        if self._game_over_menu.is_visible:
+            self._game_over_menu.process_event(event)
         if event.type == pygame_gui.UI_WINDOW_CLOSE:
             if self.city_window is not None and event.ui_element == self.city_window:
                 self.close_city_window_internal()
@@ -250,7 +251,7 @@ class HUDManager:
         self.splash_screen.update(time_delta)
 
     def draw(self, surface):
-        if self.is_paused or self.game_over_menu.is_visible or self.splash_screen.is_visible:
+        if self.is_paused or self._game_over_menu.is_visible or self.splash_screen.is_visible:
             surface.blit(self.dim_surface, (0, 0))
         self.ui_manager.draw_ui(surface)
         self.dynamic_message_manager.draw(surface)
@@ -298,10 +299,13 @@ class HUDManager:
         """Updates is_paused based on the visibility of both menus."""
         self.is_paused = self.pause_menu.is_visible or (self.city_window is not None and self.city_window.visible)
 
-    def show_game_over_menu(self, message):
+    def show_game_over_menu(self, message, player_scores):
         self.is_paused = True
-        self.game_over_menu.set_message(message)
-        self.game_over_menu.show()
+        score_message = message + "<br><br>Результат:<br>"
+        for player_id, score in player_scores.items():
+            score_message += f"Игрок {player_id}: {score} очков<br>"
+        self._game_over_menu.set_message(score_message)
+        self._game_over_menu.show()
 
     def show_player_turn_splash_screen(self, player_name):
         """Shows the player turn splash screen."""

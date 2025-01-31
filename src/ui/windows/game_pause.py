@@ -27,7 +27,7 @@ class PauseMenu:
 
         self.continue_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((0, 0), (button_width, button_height)),
-            text='Continue',
+            text='Продолжить',
             manager=self.ui_manager,
             container=self.container,
             object_id="#continue_button"
@@ -36,7 +36,7 @@ class PauseMenu:
 
         self.save_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((0, button_height + padding), (button_width, button_height)),
-            text='Save Level',
+            text='Сохранить игру',
             manager=self.ui_manager,
             container=self.container,
             object_id="#save_button"
@@ -45,7 +45,7 @@ class PauseMenu:
 
         self.exit_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect((0, 2 * (button_height + padding)), (button_width, button_height)),
-            text='Exit',
+            text='Выход',
             manager=self.ui_manager,
             container=self.container,
             object_id="#exit_button"

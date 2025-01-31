@@ -40,9 +40,39 @@ class Player:
 
         self.camera_x = 0
         self.camera_y = 0
+        self.score = 0
+
+        self.has_first_city_bonus = False
 
     def __str__(self):
         return f"Player {self.player_id}"
+
+    def calculate_score(self):
+        self.score = 0
+
+        city_count = 0
+        for building in self.buildings:
+            if isinstance(building, City):
+                city_count += 1
+        self.score += city_count * 100
+
+        self.score += len(self.units) * 5
+
+        total_resources_collected = sum(
+            self.resources.values())
+        self.score += total_resources_collected // 10
+
+        improvement_count = 0
+        for building in self.buildings:
+            if isinstance(building, City):
+                improvement_count += len(building.city_improvements)
+        self.score += improvement_count * 50
+
+        if city_count > 0 and not self.has_first_city_bonus:
+            self.score += 200
+            self.has_first_city_bonus = True
+
+        return self.score
 
 
 class GameManager:
@@ -145,11 +175,24 @@ class GameManager:
         if len(self.players) <= 1:
             self.game_over = True
             if self.players:
-                self.game_over_message = f"Game Over! {self.players[0]} is the winner!"
-                print(f"Game Over! {self.players[0]} is the winner!")
+                winner = self.players[0]
+                self.game_over_message = f"Game Over! {winner} is the winner!"
+                print(f"Game Over! {winner} is the winner!")
+
+                player_scores = {}
+                for p in self.players:
+                    player_score = p.calculate_score()
+                    player_scores[p.player_id] = player_score
+                    print(f"Player {p.player_id} score: {player_score}")
+
+                self.player_scores = player_scores
+                self.hud_manager.show_game_over_menu(self.game_over_message, player_scores)
+
             else:
                 self.game_over_message = "Game Over! It's a draw (no players left)."
                 print("Game Over! It's a draw (no players left).")
+                self.player_scores = {}
+                self.hud_manager.show_game_over_menu(self.game_over_message, {})
             return
 
         for player in self.players:

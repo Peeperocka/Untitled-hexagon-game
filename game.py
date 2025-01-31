@@ -186,7 +186,7 @@ def main_gamer(screen, width, height):
         hud_manager.draw(screen)
 
         if game_manager.game_over:
-            hud_manager.show_game_over_menu(game_manager.game_over_message)
+            hud_manager.show_game_over_menu(game_manager.game_over_message, game_manager.player_scores)
 
         pygame.display.flip()
 
