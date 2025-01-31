@@ -1,6 +1,8 @@
 import pygame
 import pygame_gui
 
+from src.utils.utils import load_image
+
 
 class MainMenu:
     def __init__(self, screen, manager):
@@ -10,9 +12,9 @@ class MainMenu:
         self.start_game_requested = False
         self.clock = pygame.time.Clock()
 
-        self.city = pygame.image.load('city.png')
-        self.im1 = pygame.image.load('archer.png')
-        self.im2 = pygame.image.load('warrior.png')
+        self.city = load_image('city.png', subdir='level_objects')
+        self.im1 = load_image('archer.png', subdir='units')
+        self.im2 = load_image('warrior.png', subdir='units')
 
         self.pos1 = [-200, 500]
         self.pos2 = [1000, 500]
