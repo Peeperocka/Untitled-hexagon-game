@@ -60,6 +60,56 @@
     {
         "prototype": "#default_shape_style"
     },
+    "@unit_info_panel":
+    {
+        "colors":
+        {
+            "dark_bg": "#21282d80",
+            "selected_bg": "#36588080",
+            "normal_bg": "#4c505280",
+            "hovered_bg": "#63686b80"
+        },
+        "misc":
+        {
+            "shape": "rectangle",
+            "border_width": "0",
+            "shadow_width": "0",
+            "shape_corner_radius": "2",
+            "text_horiz_alignment_padding": "0"
+        }
+    },
+    "#disabled_build_option":
+    {
+        "colours":
+        {
+            "normal_text": "#808080",
+            "hovered_text": "#808080",
+            "active_text": "#808080",
+            "normal_border": "#404040",
+            "normal_bg": "#202020"
+        },
+        "misc":
+        {
+            "shape": "rectangle",
+            "shape_corner_radius": "2"
+        }
+    },
+    "@unit_info_text":
+    {
+        "colors":
+        {
+            "normal_bg": "#4c505280",
+            "hovered_bg": "#63686b80",
+            "dark_bg": "#21282d80",
+            "selected_bg": "#36588080"
+        },
+        "misc":
+        {
+            "text_horiz_alignment": "center",
+            "border_width": 0,
+            "shadow_width": 0
+        }
+    },
     "@splash_screen_panel":
     {
         "colors":

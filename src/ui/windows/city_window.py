@@ -208,7 +208,6 @@ class UICityWindow(pygame_gui.elements.UIWindow):
             tool_tip_text=description,
             object_id="#disabled_build_option" if not is_available else "#build_option_button"
         )
-        button.disable() if not is_available else None
         return button
 
     def _clear_build_option_buttons(self):
