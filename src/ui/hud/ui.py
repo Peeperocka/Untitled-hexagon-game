@@ -186,7 +186,8 @@ class HUDManager:
             relative_rect=pygame.Rect((10, 10), (260, 160)),
             html_text="Select a unit to see information.",
             manager=self.ui_manager,
-            container=unit_info_panel
+            container=unit_info_panel,
+            object_id=pygame_gui.core.ObjectID(class_id="@unit_info_text")
         )
         self.elements['unit_info_text'] = unit_info_text
 
