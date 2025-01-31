@@ -18,8 +18,6 @@ class MainMenu:
         self.pos2 = [1000, 500]
         self.unit_t = True
 
-
-
         self.quit_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(700, 400, 200, 50),
             text='Выход',
@@ -60,7 +58,6 @@ class MainMenu:
                     self.pos2[0] = 1000
                     self.unit_t = True
 
-
             self.screen.fill((57, 255, 20))
             self.screen.blit(self.city, (0, 0))
             if 0 <= self.pos1[0] <= 1000:
@@ -72,23 +69,3 @@ class MainMenu:
             pygame.display.flip()
 
         return self.start_game_requested
-
-
-
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode((1000, 800))
-    pygame.display.set_caption('Главное меню')
-    manager = pygame_gui.UIManager((1000, 800))
-
-    menu = MainMenu(screen, manager)
-    start_game = menu.run()
-
-    if start_game:
-        print("Начать игру")
-
-    pygame.quit()
-
-
-if __name__ == '__main__':
-    main()
