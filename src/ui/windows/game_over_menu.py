@@ -27,7 +27,7 @@ class GameOverMenu:
         self.window.hide()
 
         self.full_message_label = pygame_gui.elements.UITextBox(
-            relative_rect=pygame.Rect((10, 20), (self.window_width - 20, 180)),
+            relative_rect=pygame.Rect((10, 20), (self.window_width - 20, 100)),
             html_text="",
             manager=self.ui_manager,
             container=self.window,
@@ -35,14 +35,14 @@ class GameOverMenu:
         )
 
         self.restart_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((10, 210), (self.window_width - 20, 40)),
+            relative_rect=pygame.Rect((10, 150), (self.window_width - 20, 40)),
             text='Заново',
             manager=self.ui_manager,
             container=self.window
         )
 
         self.exit_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((10, 260), (self.window_width - 20, 40)),
+            relative_rect=pygame.Rect((10, 200), (self.window_width - 20, 40)),
             text='Выход',
             manager=self.ui_manager,
             container=self.window
@@ -64,11 +64,6 @@ class GameOverMenu:
                 elif event.ui_element == self.exit_button:
                     self.exit_method()
 
-    def set_message(self, message, player_scores=None):
-        full_text = message + "<br><br>"
-        if player_scores:
-            full_text += "Результат:<br>"
-            for player_id, score in player_scores.items():
-                full_text += f"Игрок {player_id}: {score} очков<br>"
-        self.full_message_label.html_text = full_text
+    def set_message(self, message):
+        self.full_message_label.html_text = message
         self.full_message_label.rebuild()

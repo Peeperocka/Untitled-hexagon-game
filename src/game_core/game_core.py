@@ -176,21 +176,21 @@ class GameManager:
             self.game_over = True
             if self.players:
                 winner = self.players[0]
-                self.game_over_message = f"Game Over! {winner} is the winner!"
-                print(f"Game Over! {winner} is the winner!")
+                self.game_over_message = f"Игра окончена! {winner} - победитель!"
+                print(f"Игра окончена! {winner} - победитель!")
 
                 player_scores = {}
                 for p in self.players:
                     player_score = p.calculate_score()
                     player_scores[p.player_id] = player_score
-                    print(f"Player {p.player_id} score: {player_score}")
+                    print(f"Очки игрока {p.player_id}: {player_score}")
 
                 self.player_scores = player_scores
                 self.hud_manager.show_game_over_menu(self.game_over_message, player_scores)
 
             else:
-                self.game_over_message = "Game Over! It's a draw (no players left)."
-                print("Game Over! It's a draw (no players left).")
+                self.game_over_message = "Игра окончена! Ничья (не осталось игроков)."
+                print("Игра окончена! Ничья (не осталось игроков).")
                 self.player_scores = {}
                 self.hud_manager.show_game_over_menu(self.game_over_message, {})
             return

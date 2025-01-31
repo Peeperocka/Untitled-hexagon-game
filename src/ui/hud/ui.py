@@ -301,9 +301,9 @@ class HUDManager:
 
     def show_game_over_menu(self, message, player_scores):
         self.is_paused = True
-        score_message = message + "<br><br>Результат:<br>"
+        score_message = message + "<br>Результат:<br>"
         for player_id, score in player_scores.items():
-            score_message += f"Игрок {player_id}: {score} очков<br>"
+            score_message += f"Игрок {player_id}: {score} очков"
         self._game_over_menu.set_message(score_message)
         self._game_over_menu.show()
 
