@@ -17,7 +17,7 @@ class MainMenu:
         self.im1 = load_image('archer.png', subdir='units')
         self.im2 = load_image('warrior.png', subdir='units')
 
-        self.pos1 = [-100, 450]
+        self.pos1 = [-300, 450]
         self.pos2 = [1000, 450]
         self.unit_t = True
 
@@ -65,7 +65,7 @@ class MainMenu:
                 if self.pos1[0] < 1000:
                     self.pos1[0] += 3
                 else:
-                    self.pos1[0] = -200
+                    self.pos1[0] = -300
                     self.unit_t = False
             else:
                 if self.pos2[0] > -200:
@@ -76,7 +76,7 @@ class MainMenu:
 
             self.screen.fill((57, 255, 20))
             self.screen.blit(self.city, (0, 0))
-            if 0 <= self.pos1[0] <= 1000:
+            if -200 <= self.pos1[0] <= 1000:
                 self.screen.blit(self.im1, tuple(self.pos1))
             if -200 <= self.pos2[0] <= 1000:
                 self.screen.blit(self.im2, tuple(self.pos2))
