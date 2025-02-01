@@ -1,5 +1,5 @@
-# deserialization.py
 import json
+import os.path
 
 from src.board.board import HexBoard
 from src.terrains.game.terrains import GrassTerrain, SandTerrain, MountainTerrain
@@ -156,13 +156,13 @@ def deserialize_game_state(game_state_data, hud_manager, camera):
     return game_manager_instance
 
 
-def load_game(filename="data/saves/savegame.json", hud_manager=None, camera=None):
+def load_game_from_file(filepath=os.path.join("data", "saves", "savegame.json"), hud_manager=None, camera=None):
     try:
-        with open(filename, "r") as f:
+        with open(filepath, "r") as f:
             game_state_data = json.load(f)
             game_manager = deserialize_game_state(game_state_data, hud_manager,
                                                   camera)
             return game_manager
     except FileNotFoundError:
-        print(f"Save file not found: {filename}")
+        print(f"Save file not found: {filepath}")
         return None

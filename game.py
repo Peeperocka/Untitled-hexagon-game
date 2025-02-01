@@ -1,18 +1,16 @@
 import cProfile
+import os
 import pstats
 import pygame
 import pygame_gui
-from src.entities.game.level_objects import City
-from src.entities.game.registry import CITY_BLUEPRINTS, UNIT_BLUEPRINTS
 from src.utils import hex_utils
 from src.board.board import HexBoard
 from src.camera.camera import Camera
 from src.game_core.game_core import Player, GameManager
 from src.ui.hud.ui import HUDManager
 from src.ui.windows.main_menu import MainMenu
-from src.utils.deserialization import load_game
+from src.utils.deserialization import load_game_from_file
 from src.utils.factories import GameEntityFactory
-from src.utils.serialization import save_game
 
 all_sprites = pygame.sprite.Group()
 all_units = pygame.sprite.Group()
@@ -94,7 +92,7 @@ def restart_game():
     print("Game restarted!")
 
 
-def main_gamer(screen, width, height):
+def main_gamer(screen, width, height, new_game=False, new_game_options=None, load_game=False, load_game_file=None):
     global game_manager, hud_manager, camera, board, player1, player2, all_sprites, \
         all_units, player_1_units, player_2_units, military_objects
 
@@ -106,8 +104,8 @@ def main_gamer(screen, width, height):
     hud_manager = HUDManager(width, height, font, restart_game)
     clock = pygame.time.Clock()
 
-    loaded_game = load_game(hud_manager=hud_manager, camera=camera)
-    if input('Начать новую?'):
+    if load_game and load_game_file:
+        loaded_game = load_game_from_file(filepath=os.path.join('saves', load_game_file), hud_manager=hud_manager, camera=camera)
         game_manager = loaded_game
         board = game_manager.board
         camera = game_manager.camera
@@ -123,7 +121,40 @@ def main_gamer(screen, width, height):
         player_2_units = game_manager.player_2_units
         military_objects = game_manager.military
 
-        print("Game loaded from save file!")
+        print(f"Game loaded from {load_game_file}!")
+
+    elif new_game:
+        board = HexBoard(20, 20, 50)
+        players = []
+        num_players = new_game_options.get('player_count', 2)
+        for i in range(num_players):
+            players.append(Player(i + 1))
+        player1 = players[0] if players else None
+        player2 = players[1] if len(players) > 1 else None
+
+        game_manager = GameManager(players, board, camera, hud_manager)
+        board.game_manager = game_manager
+        board.camera = camera
+        hud_manager.set_game_manager(game_manager)
+
+        all_sprites = game_manager.all_sprites
+        all_units = game_manager.all_units
+        player_1_units = game_manager.player_1_units
+        player_2_units = game_manager.player_2_units
+        military_objects = game_manager.military
+
+        player1_data = [
+            ("cavalry", (0, 0, 0)),
+            ("cavalry", (-1, 3, -2)),
+            ("archer", (-1, 1, 0)),
+            ("crossbowman", (-1, 2, -1)),
+        ]
+        player2_data = [
+            ("warrior", (3, 0, -3)),
+            ("warrior", (3, 1, -4)),
+        ]
+        place_units_for_testing(board, player1, player2, player1_data, player2_data)
+        print("Starting a new game with options:", new_game_options)
 
     else:
         board = HexBoard(20, 20, 50)
@@ -152,7 +183,7 @@ def main_gamer(screen, width, height):
             ("warrior", (3, 1, -4)),
         ]
         place_units_for_testing(board, player1, player2, player1_data, player2_data)
-        print("Starting a new game.")
+        print("Starting a new default game as no save found and 'Continue' pressed.")
 
     profiler = cProfile.Profile()
     profiler.enable()
@@ -226,14 +257,29 @@ def main():
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption("Hex Game")
 
-    manager = pygame_gui.UIManager((width, height))
+    manager = pygame_gui.UIManager((width, height), os.path.join('data', 'theme', 'game_theme.json'))
     main_menu = MainMenu(screen, manager)
     running = True
 
     while running:
-        if main_menu.run():
+        menu_action, menu_data = main_menu.run()
+        if menu_action == "start_game":
             manager.clear_and_reset()
             running = main_gamer(screen, width, height)
+        elif menu_action == "new_game":
+            manager.clear_and_reset()
+            new_game_options = menu_data
+            print("New Game Options:", new_game_options)
+            running = main_gamer(screen, width, height, new_game=True,
+                                 new_game_options=new_game_options)
+        elif menu_action == "load_game":
+            manager.clear_and_reset()
+            load_game_data = menu_data
+            print("Load Game Data:", load_game_data)
+            running = main_gamer(screen, width, height, load_game=True,
+                                 load_game_file=load_game_data.get('save_file'))
+        elif menu_action == "quit":
+            running = False
         else:
             running = False
 
