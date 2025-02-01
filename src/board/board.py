@@ -41,16 +41,15 @@ class HexBoard:
         self.path_to_target = []
 
     def _create_grid(self):
-        grid = []
+        grid = {}
         for r in range(self.rows):
             min_q = -r // 2
             max_q = self.cols - r // 2
-            row = []
             for q in range(min_q, max_q):
                 terrain = random.choice((GrassTerrain, SandTerrain, MountainTerrain))()
                 hex_tile = hex_utils.Hex(q, r, -q - r, terrain)
-                row.append(hex_tile)
-            grid.append(row)
+                grid[(hex_tile.q, hex_tile.r, hex_tile.s)] = hex_tile
+
         return grid
 
     def _create_map_surface(self):
@@ -59,14 +58,13 @@ class HexBoard:
         max_x = float('-inf')
         max_y = float('-inf')
 
-        for row in self.grid:
-            for tile in row:
-                corners = hex_utils.polygon_corners(self.layout, tile)
-                for corner in corners:
-                    min_x = min(min_x, corner.x)
-                    min_y = min(min_y, corner.y)
-                    max_x = max(max_x, corner.x)
-                    max_y = max(max_y, corner.y)
+        for tile in self.grid.values():
+            corners = hex_utils.polygon_corners(self.layout, tile)
+            for corner in corners:
+                min_x = min(min_x, corner.x)
+                min_y = min(min_y, corner.y)
+                max_x = max(max_x, corner.x)
+                max_y = max(max_y, corner.y)
 
         total_width = max_x - min_x + 1
         total_height = max_y - min_y
@@ -82,19 +80,18 @@ class HexBoard:
         return surface
 
     def _render_to_surface(self, surface):
-        for row in self.grid:
-            for tile in row:
-                if tile is None:
-                    continue
+        for tile in self.grid.values():
+            if tile is None:
+                continue
 
-                corners = hex_utils.polygon_corners(self.layout, tile)
-                pygame.draw.polygon(surface, tile.terrain.color, [(c.x, c.y) for c in corners], 0)
-                pygame.draw.polygon(surface, self.colors['black'], [(c.x, c.y) for c in corners], 2)
+            corners = hex_utils.polygon_corners(self.layout, tile)
+            pygame.draw.polygon(surface, tile.terrain.color, [(c.x, c.y) for c in corners], 0)
+            pygame.draw.polygon(surface, self.colors['black'], [(c.x, c.y) for c in corners], 2)
 
-                # text_coords = f"{tile.q}, {tile.r}, {tile.s}"
-                # text_surface = self.font.render(text_coords, True, self.colors['white'])
-                # text_rect = text_surface.get_rect(center=tile.to_pixel(self.layout).get_coords())
-                # surface.blit(text_surface, text_rect)
+            # text_coords = f"{tile.q}, {tile.r}, {tile.s}"
+            # text_surface = self.font.render(text_coords, True, self.colors['white'])
+            # text_rect = text_surface.get_rect(center=tile.to_pixel(self.layout).get_coords())
+            # surface.blit(text_surface, text_rect)
 
     def _get_tile_from_pos(self, pos, camera):
         screen_x, screen_y = pos
@@ -106,15 +103,10 @@ class HexBoard:
         return self.get_tile_by_hex(hex)
 
     def get_tile_by_hex(self, hex):
-        if 0 <= hex.r < self.rows:
-            min_q = -hex.r // 2
-            max_q = self.cols - hex.r // 2
-            if min_q <= hex.q < max_q:
-                for tile in self.grid[hex.r]:
-                    if tile.q == hex.q:
-                        return tile
-
-        return None
+        """
+        Efficiently gets a tile from the grid dictionary using a Hex object.
+        """
+        return self.grid.get((hex.q, hex.r, hex.s))
 
     def get_click(self, pos, camera):
         return self._get_tile_from_pos(pos, camera)

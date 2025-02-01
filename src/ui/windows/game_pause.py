@@ -1,16 +1,18 @@
 import pygame
 import pygame_gui
 
+from src.utils.serialization import save_game
+
 
 class PauseMenu:
-    def __init__(self, screen_width, screen_height, ui_manager, continue_callback, save_callback, exit_callback):
+    def __init__(self, screen_width, screen_height, ui_manager, game_manger, continue_callback, exit_callback):
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.ui_manager = ui_manager
         self.is_visible = False
         self.continue_callback = continue_callback
-        self.save_callback = save_callback
         self.exit_callback = exit_callback
+        self.game_manager = game_manger
 
         button_width = 200
         button_height = 50
@@ -59,7 +61,7 @@ class PauseMenu:
                     if event.ui_element == self.continue_button:
                         self.continue_callback()
                     elif event.ui_element == self.save_button:
-                        self.save_callback()
+                        save_game(self.game_manager)
                     elif event.ui_element == self.exit_button:
                         self.exit_callback()
 

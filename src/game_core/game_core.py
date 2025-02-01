@@ -2,6 +2,7 @@ import pygame
 
 from src.entities.game.level_objects import City
 from src.game_core.states.states import SelectingUnitState, UnitSelectedState, BuildingSelectedState
+from src.utils.serialization import save_game
 
 
 class Player:
@@ -370,3 +371,9 @@ class GameManager:
                         text = f"{self.selected_unit.blueprint.name} не может окопаться т/к атаковал!"
                         self.hud_manager.dynamic_message_manager.create_message(text, self.selected_unit.rect.center)
                         print(text)
+            if event.key == pygame.K_s:
+                self.save_game()
+
+    def save_game(self):
+        """Saves the current game state to a JSON file."""
+        save_game(self)

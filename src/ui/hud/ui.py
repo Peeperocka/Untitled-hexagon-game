@@ -122,9 +122,10 @@ class MenuButton:
 
 
 class HUDManager:
-    def __init__(self, screen_width, screen_height, font, restart_game_method):
+    def __init__(self, screen_width, screen_height, font, restart_game_method, game_manager=None):
         self.font = font
         self.restart_game_method = restart_game_method
+        self.game_manager = game_manager
 
         self.ui_manager = pygame_gui.UIManager((screen_width, screen_height),
                                                os.path.join('data', 'theme', 'game_theme.json'))
@@ -196,8 +197,9 @@ class HUDManager:
         self.elements['menu_button'] = menu_button
 
     def _create_pause_menu(self, screen_width, screen_height):
-        self.pause_menu = PauseMenu(screen_width, screen_height, self.ui_manager,
-                                    self.unpause_game, self.save_game, self.exit_game)
+        self.pause_menu = PauseMenu(
+            screen_width, screen_height, self.ui_manager,
+            self.game_manager, self.unpause_game, self.exit_game)
 
     def _create_game_over_menu(self, screen_width, screen_height):
         self._game_over_menu = GameOverMenu(screen_width, screen_height, self.ui_manager,
@@ -218,6 +220,7 @@ class HUDManager:
 
     def save_game(self):
         print("Saving the game")
+        self.game_manager.save_game()
 
     def exit_game(self):
         pygame.quit()
@@ -314,3 +317,7 @@ class HUDManager:
     def hide_player_turn_splash_screen(self):
         """Hides the player turn splash screen."""
         self.splash_screen.hide()
+
+    def set_game_manager(self, game_manager):
+        self.game_manager = game_manager
+        self.pause_menu.game_manager = game_manager
