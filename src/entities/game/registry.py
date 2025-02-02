@@ -23,7 +23,7 @@ UNIT_BLUEPRINTS = {
     "warrior": UnitBlueprint(
         name="Воин",
         description="Базовый пехотный юнит ближнего боя, крепкий и надежный.",
-        base_health=100,
+        base_health=120,
         base_attack=25,
         attack_spread=5,
         attack_range=1,
