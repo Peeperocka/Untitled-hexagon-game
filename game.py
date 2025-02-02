@@ -105,7 +105,8 @@ def main_gamer(screen, width, height, new_game=False, new_game_options=None, loa
     clock = pygame.time.Clock()
 
     if load_game and load_game_file:
-        loaded_game = load_game_from_file(filepath=os.path.join('saves', load_game_file), hud_manager=hud_manager, camera=camera)
+        loaded_game = load_game_from_file(filepath=os.path.join('data', 'saves', load_game_file),
+                                          hud_manager=hud_manager, camera=camera)
         game_manager = loaded_game
         board = game_manager.board
         camera = game_manager.camera

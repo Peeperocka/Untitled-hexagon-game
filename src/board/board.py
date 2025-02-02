@@ -1,4 +1,6 @@
 import pygame
+
+from src.entities.game.registry import TERRAIN_NAME_REVERSE_MAPPING
 from src.utils import hex_utils
 import random
 
@@ -12,13 +14,17 @@ class HexBoard:
         hex_utils.Point(0, 0)
     )
 
-    def __init__(self, rows, cols, size, game_manager=None):
+    def __init__(self, rows, cols, size, game_manager=None, initial_grid_data=None):
         self.rows = rows
         self.cols = cols
         self.size = size
         self.game_manager = game_manager
 
-        self.grid = self._create_grid()
+        if initial_grid_data:
+            self.grid = self._create_grid_from_data(initial_grid_data)
+        else:
+            self.grid = self._create_grid()
+
         self.colors = {
             'white': (255, 255, 255),
             'black': (0, 0, 0),
@@ -49,7 +55,20 @@ class HexBoard:
                 terrain = random.choice((GrassTerrain, SandTerrain, MountainTerrain))()
                 hex_tile = hex_utils.Hex(q, r, -q - r, terrain)
                 grid[(hex_tile.q, hex_tile.r, hex_tile.s)] = hex_tile
+        return grid
 
+    def _create_grid_from_data(self, initial_grid_data):
+        grid = {}
+        for tile_data in initial_grid_data:
+            q = tile_data["q"]
+            r = tile_data["r"]
+            s = tile_data["s"]
+            terrain_name = tile_data["terrain"]
+            terrain_class = TERRAIN_NAME_REVERSE_MAPPING.get(
+                terrain_name, GrassTerrain)
+            terrain = terrain_class()
+            hex_tile = hex_utils.Hex(q, r, s, terrain)
+            grid[(hex_tile.q, hex_tile.r, hex_tile.s)] = hex_tile
         return grid
 
     def _create_map_surface(self):

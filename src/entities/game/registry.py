@@ -1,5 +1,23 @@
 from src.entities.base.blueprints import UnitBlueprint, TileBuildingBlueprint, CityBlueprint, CityImprovementBlueprint
 from src.entities.game.units import Warrior, Cavalry, Archer, Crossbowman
+from src.game_core.states.states import SelectingUnitState, UnitSelectedState, BuildingSelectedState
+from src.terrains.game.terrains import GrassTerrain, SandTerrain, MountainTerrain
+
+TERRAIN_NAME_MAPPING = {
+    GrassTerrain: "grass",
+    SandTerrain: "sand",
+    MountainTerrain: "mountain",
+}
+
+TERRAIN_NAME_REVERSE_MAPPING = {v: k for k, v in TERRAIN_NAME_MAPPING.items()}
+
+STATE_NAME_MAPPING = {
+    SelectingUnitState: "selecting_unit_state",
+    UnitSelectedState: "unit_selected_state",
+    BuildingSelectedState: "building_selected_state",
+}
+
+STATE_NAME_REVERSE_MAPPING = {v: k for k, v in STATE_NAME_MAPPING.items()}
 
 UNIT_BLUEPRINTS = {
     "warrior": UnitBlueprint(

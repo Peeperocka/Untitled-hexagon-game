@@ -1,5 +1,6 @@
 import json
-from src.utils.deserialization import TERRAIN_NAME_MAPPING
+
+from src.entities.game.registry import TERRAIN_NAME_MAPPING
 
 
 def serialize_unit(unit):

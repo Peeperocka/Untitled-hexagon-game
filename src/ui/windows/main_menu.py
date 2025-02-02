@@ -220,8 +220,8 @@ class MainMenu:
                     if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                         if event.ui_element == self.start_button_ng:
                             self.new_game_options_data = {
-                                'player_count': int(self.player_count_dropdown.get_current_selection()),
-                                'level_name': self.level_dropdown.get_current_selection(),
+                                'player_count': int(self.player_count_dropdown.selected_option[0]),
+                                'level_name': self.level_dropdown.selected_option[0],
                                 'save_name': self.save_name_entry.get_text()
                             }
                             self.new_game_requested = True
@@ -272,7 +272,7 @@ class MainMenu:
                 if event.type == pygame.USEREVENT:
                     if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                         if event.ui_element == self.load_button_lg:
-                            selected_save = self.save_file_dropdown.get_current_selection()
+                            selected_save = self.save_file_dropdown.selected_option[0]
                             if selected_save != 'Нет сохранений':
                                 self.load_game_data = {'save_file': selected_save}
                                 self.load_game_requested = True
