@@ -178,38 +178,24 @@ class MainMenu:
             relative_rect=pygame.Rect((550, 200), (300, 50)),
             manager=self.new_game_manager
         )
-
         pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect((550, 260), (300, 30)),
-            text='Уровень:',
-            manager=self.new_game_manager,
-            object_id='@main_menu_label'
-        )
-        self.level_dropdown = pygame_gui.elements.UIDropDownMenu(
-            options_list=['level1', 'level2', 'level3'],
-            starting_option='level1',
-            relative_rect=pygame.Rect((550, 300), (300, 50)),
-            manager=self.new_game_manager
-        )
-
-        pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect((550, 360), (300, 30)),
             text='Название сохранения:',
             manager=self.new_game_manager,
             object_id='@main_menu_label'
         )
         self.save_name_entry = pygame_gui.elements.UITextEntryLine(
-            relative_rect=pygame.Rect((550, 400), (300, 50)),
+            relative_rect=pygame.Rect((550, 300), (300, 50)),
             manager=self.new_game_manager,
             placeholder_text='Название сохранения'
         )
         self.start_button_ng = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((550, 500), (140, 50)),
+            relative_rect=pygame.Rect((550, 400), (140, 50)),
             text='Старт',
             manager=self.new_game_manager
         )
         self.cancel_button_ng = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((710, 500), (140, 50)),
+            relative_rect=pygame.Rect((710, 400), (140, 50)),
             text='Отмена',
             manager=self.new_game_manager
         )
@@ -233,7 +219,6 @@ class MainMenu:
                                 save_name += '.json'
                             self.new_game_options_data = {
                                 'player_count': int(self.player_count_dropdown.selected_option[0]),
-                                'level_name': self.level_dropdown.selected_option,
                                 'save_name': save_name
                             }
                             self.new_game_requested = True
