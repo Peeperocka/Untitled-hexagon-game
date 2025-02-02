@@ -4,7 +4,8 @@ import os.path
 from src.board.board import HexBoard
 from src.utils import hex_utils
 from src.utils.hex_utils import Hex
-from src.entities.game.registry import UNIT_BLUEPRINTS, CITY_BLUEPRINTS, TERRAIN_NAME_REVERSE_MAPPING
+from src.entities.game.registry import UNIT_BLUEPRINTS, CITY_BLUEPRINTS, TERRAIN_NAME_REVERSE_MAPPING, \
+    CITY_IMPROVEMENT_BLUEPRINTS
 from src.utils.factories import GameEntityFactory
 
 
@@ -37,6 +38,17 @@ def deserialize_building(building_data, tile, player, game_manager):
 
     building = GameEntityFactory.create_city(building_type_name, tile, player, game_manager)
     building.hp = building_data["hp"]
+
+    if "city_improvements" in building_data:
+        for imp_id in building_data["city_improvements"]:
+            building.city_improvements[imp_id] = CITY_IMPROVEMENT_BLUEPRINTS[imp_id]
+
+    if "city_improvements_in_progress_id" in building_data:
+        building.city_improvements_in_progress_id = building_data["city_improvements_in_progress_id"]
+
+    if "unit_recruitment_in_progress_id" in building_data:
+        building.unit_recruitment_in_progress_id = building_data["unit_recruitment_in_progress_id"]
+
     return building
 
 

@@ -1,5 +1,6 @@
 import json
 
+from src.entities.game.level_objects import City
 from src.entities.game.registry import TERRAIN_NAME_MAPPING
 
 
@@ -20,7 +21,7 @@ def serialize_unit(unit):
 
 
 def serialize_building(building):
-    return {
+    serialized_data = {
         "type": building.blueprint.implementation_class,
         "position": {
             "q": building.hex_tile.q,
@@ -30,6 +31,13 @@ def serialize_building(building):
         "hp": building.hp,
         "player_id": building.player.player_id,
     }
+
+    if isinstance(building, City):
+        serialized_data["city_improvements"] = list(building.city_improvements.keys())
+        serialized_data["city_improvements_in_progress_id"] = building.city_improvements_in_progress_id
+        serialized_data["unit_recruitment_in_progress_id"] = building.unit_recruitment_in_progress_id
+
+    return serialized_data
 
 
 def serialize_player(player):
