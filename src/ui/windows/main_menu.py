@@ -12,7 +12,6 @@ class MainMenu:
         self.themed_manager = pygame_gui.UIManager((screen.get_width(), screen.get_height()),
                                                    os.path.join('data', 'theme', 'game_theme.json'))
         self.is_running = True
-        self.start_game_requested = False
         self.load_game_requested = False
         self.new_game_requested = False
         self.sr = False
@@ -47,23 +46,16 @@ class MainMenu:
             manager=self.manager
         )
 
-        self.sb = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect(700, 300, 200, 50),
-            text='Продолжить игру',
-            manager=self.manager
-        )
-
         self.qb = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect(700, 400, 200, 50),
+            relative_rect=pygame.Rect(700, 300, 200, 50),
             text='Выход',
             manager=self.manager
         )
 
-        self.menu_buttons = [self.ngb, self.lgb, self.rb, self.sb, self.qb]
+        self.menu_buttons = [self.ngb, self.lgb, self.rb, self.qb]
 
     def run(self):
         self.is_running = True
-        self.start_game_requested = False
         self.load_game_requested = False
         self.new_game_requested = False
         self.sr = False
@@ -81,10 +73,7 @@ class MainMenu:
                 self.themed_manager.process_events(event)
                 if event.type == pygame.USEREVENT:
                     if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
-                        if event.ui_element == self.sb:
-                            self.start_game_requested = True
-                            self.is_running = False
-                        elif event.ui_element == self.qb:
+                        if event.ui_element == self.qb:
                             self.is_running = False
                         elif event.ui_element == self.rb:
                             self.rules_screen_active = True
@@ -129,9 +118,7 @@ class MainMenu:
             self.themed_manager.draw_ui(self.screen)
             pygame.display.flip()
 
-        if self.start_game_requested:
-            return "start_game", {}
-        elif self.new_game_requested:
+        if self.new_game_requested:
             return "new_game", self.new_game_options_data
         elif self.load_game_requested:
             return "load_game", self.load_game_data
@@ -179,30 +166,50 @@ class MainMenu:
 
     def new_game_options(self):
         self.new_game_manager = self.themed_manager
+        pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((550, 160), (300, 30)),
+            text='Количество игроков:',
+            manager=self.new_game_manager,
+            object_id='@main_menu_label'
+        )
         self.player_count_dropdown = pygame_gui.elements.UIDropDownMenu(
-            options_list=['1', '2'],
+            options_list=['2', '3', '4', '5', '6', '7', '8'],
             starting_option='2',
-            relative_rect=pygame.Rect((350, 200), (300, 50)),
+            relative_rect=pygame.Rect((550, 200), (300, 50)),
             manager=self.new_game_manager
+        )
+
+        pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((550, 260), (300, 30)),
+            text='Уровень:',
+            manager=self.new_game_manager,
+            object_id='@main_menu_label'
         )
         self.level_dropdown = pygame_gui.elements.UIDropDownMenu(
             options_list=['level1', 'level2', 'level3'],
             starting_option='level1',
-            relative_rect=pygame.Rect((350, 300), (300, 50)),
+            relative_rect=pygame.Rect((550, 300), (300, 50)),
             manager=self.new_game_manager
         )
+
+        pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((550, 360), (300, 30)),
+            text='Название сохранения:',
+            manager=self.new_game_manager,
+            object_id='@main_menu_label'
+        )
         self.save_name_entry = pygame_gui.elements.UITextEntryLine(
-            relative_rect=pygame.Rect((350, 400), (300, 50)),
+            relative_rect=pygame.Rect((550, 400), (300, 50)),
             manager=self.new_game_manager,
             placeholder_text='Название сохранения'
         )
         self.start_button_ng = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((350, 500), (140, 50)),
+            relative_rect=pygame.Rect((550, 500), (140, 50)),
             text='Старт',
             manager=self.new_game_manager
         )
         self.cancel_button_ng = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((510, 500), (140, 50)),
+            relative_rect=pygame.Rect((710, 500), (140, 50)),
             text='Отмена',
             manager=self.new_game_manager
         )
@@ -243,21 +250,35 @@ class MainMenu:
 
     def load_game_screen(self):
         self.load_game_manager = self.themed_manager
+        pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect((550, 160), (300, 30)),
+            text='Выберите сохранение:',
+            manager=self.load_game_manager,
+            object_id='@main_menu_label'
+        )
         save_files = [f for f in os.listdir(os.path.join('data', 'saves')) if f.endswith('.json')]
         self.save_file_dropdown = pygame_gui.elements.UIDropDownMenu(
             options_list=save_files if save_files else ['Нет сохранений'],
             starting_option=save_files[0] if save_files else 'Нет сохранений',
-            relative_rect=pygame.Rect((350, 200), (300, 50)),
+            relative_rect=pygame.Rect((550, 200), (300, 50)),
             manager=self.load_game_manager
         )
+
         self.load_button_lg = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((350, 300), (140, 50)),
+            relative_rect=pygame.Rect((550, 300), (140, 50)),
             text='Загрузить',
             manager=self.load_game_manager
         )
+
         self.cancel_button_lg = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect((510, 300), (140, 50)),
+            relative_rect=pygame.Rect((710, 300), (140, 50)),
             text='Отмена',
+            manager=self.load_game_manager
+        )
+
+        self.save_info_text_box = pygame_gui.elements.UITextBox(
+            relative_rect=pygame.Rect((340, 360), (510, 100)),
+            html_text="",
             manager=self.load_game_manager
         )
         self.load_game_data = {}

@@ -60,6 +60,17 @@
     {
         "prototype": "#default_shape_style"
     },
+    "@main_menu_label":
+    {
+        "font":
+        {
+            "size": 20
+        },
+        "misc":
+        {
+            "text_vert_alignment": "bottom"
+        }
+    },
     "@unit_info_panel":
     {
         "colors":

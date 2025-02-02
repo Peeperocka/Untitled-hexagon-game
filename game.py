@@ -184,7 +184,7 @@ def main_gamer(screen, width, height, new_game=False, new_game_options=None, loa
             ("warrior", (3, 1, -4)),
         ]
         place_units_for_testing(board, player1, player2, player1_data, player2_data)
-        print("Starting a new default game as no save found and 'Continue' pressed.")
+        print("Starting a new default game.")
 
     profiler = cProfile.Profile()
     profiler.enable()
@@ -264,10 +264,7 @@ def main():
 
     while running:
         menu_action, menu_data = main_menu.run()
-        if menu_action == "start_game":
-            manager.clear_and_reset()
-            running = main_gamer(screen, width, height)
-        elif menu_action == "new_game":
+        if menu_action == "new_game":
             manager.clear_and_reset()
             new_game_options = menu_data
             print("New Game Options:", new_game_options)
