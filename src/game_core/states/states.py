@@ -120,3 +120,19 @@ class BuildingSelectedState(GameState):
         else:
             self._reset_selection()
             self.game_manager.current_state = self.game_manager.selecting_unit_state
+
+
+class BuildingNewCityState(GameState):
+    def handle_mouse_click(self, pos):
+        clicked_tile = self.board.get_click(pos, self.camera)
+        if not clicked_tile:
+            print("Clicked outside the grid.")
+            return
+
+        if self.game_manager.can_build_new_city_on_tile(clicked_tile):
+            self.game_manager.build_new_city_on_tile(clicked_tile, self.game_manager.get_current_player())
+        else:
+            print("Cannot build a new city on this tile.")
+            self.game_manager.current_state = self.game_manager.selecting_unit_state
+            self.game_manager.new_city_origin = None
+            self.board.highlighted_hexes = []

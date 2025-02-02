@@ -1,11 +1,14 @@
+# game_core.py
 import os
 
 import pygame
 
 from src.entities.game.level_objects import City
-from src.game_core.states.states import SelectingUnitState, UnitSelectedState, BuildingSelectedState
+from src.game_core.states.states import SelectingUnitState, UnitSelectedState, BuildingSelectedState, \
+    BuildingNewCityState
 from src.utils.serialization import save_game
 from src.utils.factories import GameEntityFactory
+from src.entities.game.registry import CITY_BLUEPRINTS
 import random
 
 
@@ -104,6 +107,7 @@ class GameManager:
         self.selecting_unit_state = SelectingUnitState(self, board, camera, self.hud_manager)
         self.unit_selected_state = UnitSelectedState(self, board, camera, self.hud_manager)
         self.building_selected_state = BuildingSelectedState(self, board, camera, self.hud_manager)
+        self.building_new_city_state = BuildingNewCityState(self, board, camera, self.hud_manager)
 
         self.current_state = self.selecting_unit_state
         self.game_over = False
@@ -116,6 +120,8 @@ class GameManager:
         self.camera.y = self.get_current_player().camera_y
 
         self.save_name = save_name
+
+        self.new_city_origin = None
 
     def initialize_players(self):
         """Initializes each player with a city and a warrior unit at a random location."""
@@ -391,17 +397,17 @@ class GameManager:
                         self.selected_unit.can_attack = False
                         self.selected_unit.current_movement_range = 0
                         text = f"{self.selected_unit.blueprint.name} окопался!"
-                        self.hud_manager.dynamic_message_manager.create_message(text, self.selected_unit.rect.center)
+                        self.hud_manager.dynamic_message_manager.create_message(text)
                         self.deselect_unit()
                         print(text)
                         self.update_ui_for_selected_unit()
                     elif self.selected_unit.is_dug_in:
                         text = f"{self.selected_unit.blueprint.name} уже окопался!"
-                        self.hud_manager.dynamic_message_manager.create_message(text, self.selected_unit.rect.center)
+                        self.hud_manager.dynamic_message_manager.create_message(text)
                         print(text)
                     elif not self.selected_unit.can_attack:
                         text = f"{self.selected_unit.blueprint.name} не может окопаться т/к атаковал!"
-                        self.hud_manager.dynamic_message_manager.create_message(text, self.selected_unit.rect.center)
+                        self.hud_manager.dynamic_message_manager.create_message(text)
                         print(text)
             if event.key == pygame.K_s:
                 self.save_game()
@@ -410,3 +416,50 @@ class GameManager:
         """Saves the current game state to a JSON file."""
         save_path = os.path.join('data', 'saves', self.save_name)
         save_game(self, filename=save_path)
+
+    def start_new_city_construction(self, city):
+        self.current_state = self.building_new_city_state
+        self.new_city_origin = city
+        print(
+            f"Начато строительство нового города игроком {city.player.player_id} из города {city.hex_tile.q, city.hex_tile.r}")
+
+    def can_build_new_city_on_tile(self, tile):
+        """
+        Проверяет, можно ли построить новый город на указанном тайле.
+        """
+        if tile.building or tile.unit:
+            return False
+
+        radius = 5
+        nearby_tiles = self.board.get_hexes_in_radius(tile, radius)
+        for nearby_tile in nearby_tiles:
+            if nearby_tile.building and isinstance(nearby_tile.building, City):
+                return False
+
+        return True
+
+    def build_new_city_on_tile(self, tile, player):
+        """
+        Строит новый город на указанном тайле для указанного игрока.
+        """
+        city_blueprint = CITY_BLUEPRINTS["city"]
+        if (player.resources["gold"] >= city_blueprint.cost_gold and
+                player.resources["wood"] >= city_blueprint.cost_wood and
+                player.resources["stone"] >= city_blueprint.cost_stone):
+
+            player.resources["gold"] -= city_blueprint.cost_gold
+            player.resources["wood"] -= city_blueprint.cost_wood
+            player.resources["stone"] -= city_blueprint.cost_stone
+            self.hud_manager.update_resource_values(player.resources, player.income, player.expense)
+
+            GameEntityFactory.create_city('city', tile, player, self)
+            self.current_state = self.selecting_unit_state
+            self.new_city_origin = None
+            self.board.highlighted_hexes = []
+            print(f"Построен новый город на тайле {tile.q, tile.r} игроком {player.player_id}")
+        else:
+            print(f"Недостаточно ресурсов для строительства города игроком {player.player_id}")
+            self.hud_manager.dynamic_message_manager.create_message("Недостаточно ресурсов для строительства города!")
+            self.current_state = self.selecting_unit_state
+            self.new_city_origin = None
+            self.board.highlighted_hexes = []

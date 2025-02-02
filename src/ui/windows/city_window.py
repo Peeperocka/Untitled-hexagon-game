@@ -1,7 +1,7 @@
 import pygame
 import pygame_gui
 
-from src.entities.game.registry import CITY_IMPROVEMENT_BLUEPRINTS, UNIT_BLUEPRINTS
+from src.entities.game.registry import CITY_IMPROVEMENT_BLUEPRINTS, UNIT_BLUEPRINTS, CITY_BLUEPRINTS
 
 
 class UICityWindow(pygame_gui.elements.UIWindow):
@@ -110,6 +110,11 @@ class UICityWindow(pygame_gui.elements.UIWindow):
             if clicked_element != button:
                 continue
 
+            if option_id == "new_city":
+                self.city.game_manager.start_new_city_construction(self.city)
+                self.close_window()
+                return
+
             if self.current_category == "city_build":
                 if not self._check_requirements(option_id, CITY_IMPROVEMENT_BLUEPRINTS):
                     msg = f"Не выполнены требования для {CITY_IMPROVEMENT_BLUEPRINTS[option_id].name}"
@@ -167,6 +172,14 @@ class UICityWindow(pygame_gui.elements.UIWindow):
         self.build_options_panel.show()
 
     def _generate_option_description(self, option_data):
+        if option_data is None:
+            description = "Строительство нового города.\nСтоимость:"
+            city_blueprint = CITY_BLUEPRINTS["city"]
+            description += f"\nЗолото: {city_blueprint.cost_gold}"
+            description += f"\nДерево: {city_blueprint.cost_wood}"
+            description += f"\nКамень: {city_blueprint.cost_stone}"
+            return description
+
         description = option_data.description + '\nСтоимость:'
 
         resources = {
@@ -187,10 +200,14 @@ class UICityWindow(pygame_gui.elements.UIWindow):
         return description
 
     def _create_build_option_button(self, option_id, option_data, y_offset):
-        description = self._generate_option_description(option_data)
+        description = self._generate_option_description(
+            option_data) if option_data else self._generate_option_description(None)
         is_available = True
 
-        if self.current_category == "city_build":
+        if option_id == "new_city":
+            is_available = True
+
+        elif self.current_category == "city_build":
             is_available = self._check_requirements(option_id, CITY_IMPROVEMENT_BLUEPRINTS)
         elif self.current_category == "unit_build":
             is_available = self._check_requirements(option_id, UNIT_BLUEPRINTS)
@@ -202,7 +219,7 @@ class UICityWindow(pygame_gui.elements.UIWindow):
                 self.build_options_panel.relative_rect.width - self.BUTTON_WIDTH_OFFSET,
                 self.BUTTON_HEIGHT,
             ),
-            option_data.name,
+            option_data.name if option_data else "Новый город",
             manager=self.manager,
             container=self.build_options_container,
             tool_tip_text=description,
@@ -222,6 +239,11 @@ class UICityWindow(pygame_gui.elements.UIWindow):
 
     def _populate_build_options(self, build_options):
         y_offset = 0
+
+        new_city_button = self._create_build_option_button("new_city", None, y_offset)
+        self.build_option_buttons["new_city"] = new_city_button
+        y_offset += self.BUTTON_HEIGHT + self.BUTTON_VERTICAL_MARGIN
+
         for option_id, option_data in build_options.items():
             button = self._create_build_option_button(option_id, option_data, y_offset)
             self.build_option_buttons[option_id] = button
@@ -250,8 +272,11 @@ class UICityWindow(pygame_gui.elements.UIWindow):
         self._update_content()
         super().show()
 
-    def hide(self):
-        super().hide()
+    def close_window(self):
+        """
+        Закрывает окно, уничтожая его и все связанные элементы.
+        """
+        self.kill()
 
     def update(self, time_delta):
         pass
