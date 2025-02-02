@@ -3,98 +3,34 @@ import os
 import pstats
 import pygame
 import pygame_gui
-from src.utils import hex_utils
 from src.board.board import HexBoard
 from src.camera.camera import Camera
 from src.game_core.game_core import Player, GameManager
 from src.ui.hud.ui import HUDManager
 from src.ui.windows.main_menu import MainMenu
 from src.utils.deserialization import load_game_from_file
-from src.utils.factories import GameEntityFactory
 
-all_sprites = pygame.sprite.Group()
-all_units = pygame.sprite.Group()
-player_1_units = pygame.sprite.Group()
-player_2_units = pygame.sprite.Group()
-military_objects = pygame.sprite.Group()
 game_manager = None
 hud_manager = None
-camera = None
-board = None
-player1 = None
-player2 = None
-
-
-def place_units_for_testing(board, player1, player2, player1_units_data, player2_units_data):
-    global all_sprites, all_units, player_1_units, player_2_units, military_objects
-    city_tile = board.get_tile_by_hex(hex_utils.Hex(-1, 3, -2))
-    print(city_tile)
-    GameEntityFactory.create_city('city', city_tile, player1, game_manager)
-
-    for unit_id, hex_coords in player1_units_data:
-        tile = board.get_tile_by_hex(hex_utils.Hex(*hex_coords))
-        if tile and tile.unit is None:
-            unit = GameEntityFactory.create_unit(unit_id, tile, player1,
-                                                 game_manager)
-            player1.units.add(unit)
-        else:
-            print(f"Could not place unit {unit_id} at {hex_coords} for Player 1.")
-
-    for unit_id, hex_coords in player2_units_data:
-        tile = board.get_tile_by_hex(hex_utils.Hex(*hex_coords))
-        if tile and tile.unit is None:
-            unit = GameEntityFactory.create_unit(unit_id, tile, player2,
-                                                 game_manager)
-            player2.units.add(unit)
-        else:
-            print(f"Could not place unit {unit_id} at {hex_coords} for Player 2.")
 
 
 def restart_game():
-    global game_manager, hud_manager, camera, board, player1, player2, all_sprites, \
-        all_units, player_1_units, player_2_units, military_objects
-
-    all_sprites.empty()
-    all_units.empty()
-    player_1_units.empty()
-    player_2_units.empty()
-    military_objects.empty()
+    global game_manager, hud_manager, camera, board
 
     camera.x = 0
     camera.y = 0
 
     board = HexBoard(20, 20, 50)
-    player1 = Player(1)
-    player2 = Player(2)
-    players = [player1, player2]
+    players = [Player(1), Player(2)]
     game_manager = GameManager(players, board, camera, hud_manager)
     board.game_manager = game_manager
-
-    all_sprites = game_manager.all_sprites
-    all_units = game_manager.all_units
-    player_1_units = game_manager.player_1_units
-    player_2_units = game_manager.player_2_units
-    military_objects = game_manager.military
-
-    player1_data = [
-        ("cavalry", (0, 0, 0)),
-        ("cavalry", (-1, 3, -2)),
-        ("archer", (-1, 1, 0)),
-        ("crossbowman", (-1, 2, -1)),
-    ]
-    player2_data = [
-        ("warrior", (3, 0, -3)),
-        ("warrior", (3, 1, -4)),
-        ("warrior", (2, 2, -4)),
-    ]
-    place_units_for_testing(board, player1, player2, player1_data, player2_data)
+    hud_manager.set_game_manager(game_manager)
 
     print("Game restarted!")
 
 
 def main_gamer(screen, width, height, new_game=False, new_game_options=None, load_game=False, load_game_file=None):
-    global game_manager, hud_manager, camera, board, player1, player2, all_sprites, \
-        all_units, player_1_units, player_2_units, military_objects
+    global game_manager, hud_manager, camera
 
     FPS = 60
     pygame.display.set_caption("Hex Game")
@@ -112,78 +48,32 @@ def main_gamer(screen, width, height, new_game=False, new_game_options=None, loa
         camera = game_manager.camera
         hud_manager = game_manager.hud_manager
         hud_manager.set_game_manager(game_manager)
-        players = game_manager.players
-        player1 = players[0] if players else None
-        player2 = players[1] if len(players) > 1 else None
-
-        all_sprites = game_manager.all_sprites
-        all_units = game_manager.all_units
-        player_1_units = game_manager.player_1_units
-        player_2_units = game_manager.player_2_units
-        military_objects = game_manager.military
 
         print(f"Game loaded from {load_game_file}!")
 
     elif new_game:
         board = HexBoard(20, 20, 50)
-        players = []
         num_players = new_game_options.get('player_count', 2)
-        for i in range(num_players):
-            players.append(Player(i + 1))
-        player1 = players[0] if players else None
-        player2 = players[1] if len(players) > 1 else None
+        players = [Player(i + 1) for i in range(num_players)]
 
-        game_manager = GameManager(players, board, camera, hud_manager)
+        save_name = new_game_options.get('save_name', 'default_save_name')
+        if not save_name.endswith('.json'):
+            save_name += '.json'
+        game_manager = GameManager(players, board, camera, hud_manager, save_name=save_name)
         board.game_manager = game_manager
         board.camera = camera
         hud_manager.set_game_manager(game_manager)
 
-        all_sprites = game_manager.all_sprites
-        all_units = game_manager.all_units
-        player_1_units = game_manager.player_1_units
-        player_2_units = game_manager.player_2_units
-        military_objects = game_manager.military
-
-        player1_data = [
-            ("cavalry", (0, 0, 0)),
-            ("cavalry", (-1, 3, -2)),
-            ("archer", (-1, 1, 0)),
-            ("crossbowman", (-1, 2, -1)),
-        ]
-        player2_data = [
-            ("warrior", (3, 0, -3)),
-            ("warrior", (3, 1, -4)),
-        ]
-        place_units_for_testing(board, player1, player2, player1_data, player2_data)
         print("Starting a new game with options:", new_game_options)
 
     else:
         board = HexBoard(20, 20, 50)
-        player1 = Player(1)
-        player2 = Player(2)
-        players = [player1, player2]
+        players = [Player(1), Player(2)]
         game_manager = GameManager(players, board, camera, hud_manager)
         board.game_manager = game_manager
         board.camera = camera
         hud_manager.set_game_manager(game_manager)
 
-        all_sprites = game_manager.all_sprites
-        all_units = game_manager.all_units
-        player_1_units = game_manager.player_1_units
-        player_2_units = game_manager.player_2_units
-        military_objects = game_manager.military
-
-        player1_data = [
-            ("cavalry", (0, 0, 0)),
-            ("cavalry", (-1, 3, -2)),
-            ("archer", (-1, 1, 0)),
-            ("crossbowman", (-1, 2, -1)),
-        ]
-        player2_data = [
-            ("warrior", (3, 0, -3)),
-            ("warrior", (3, 1, -4)),
-        ]
-        place_units_for_testing(board, player1, player2, player1_data, player2_data)
         print("Starting a new default game.")
 
     profiler = cProfile.Profile()
@@ -227,7 +117,7 @@ def main_gamer(screen, width, height, new_game=False, new_game_options=None, loa
             camera.y += camera.speed
 
         if not hud_manager.is_paused:
-            for sprite in all_sprites:
+            for sprite in game_manager.all_sprites:
                 sprite.update()
             hud_manager.update(time_delta)
         else:
@@ -236,7 +126,7 @@ def main_gamer(screen, width, height, new_game=False, new_game_options=None, loa
         screen.fill(board.colors['background'])
         board.render(screen, camera)
 
-        for sprite in all_sprites:
+        for sprite in game_manager.all_sprites:
             sprite.render(screen, camera)
 
         hud_manager.draw(screen)

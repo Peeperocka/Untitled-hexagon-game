@@ -1,8 +1,12 @@
+import os
+
 import pygame
 
 from src.entities.game.level_objects import City
 from src.game_core.states.states import SelectingUnitState, UnitSelectedState, BuildingSelectedState
 from src.utils.serialization import save_game
+from src.utils.factories import GameEntityFactory
+import random
 
 
 class Player:
@@ -77,7 +81,7 @@ class Player:
 
 
 class GameManager:
-    def __init__(self, players, board, camera, hud_manager):
+    def __init__(self, players, board, camera, hud_manager, save_name='savegame.json'):
         self.selected_building = None
         self.players = list(players)
         self.current_player_index = 0
@@ -106,7 +110,35 @@ class GameManager:
         self.game_over_message = ""
 
         self.update_player_resources()
-        print(f"It's {self.get_current_player()}'s turn.")
+        self.initialize_players()
+
+        self.camera.x = self.get_current_player().camera_x
+        self.camera.y = self.get_current_player().camera_y
+
+        self.save_name = save_name
+
+    def initialize_players(self):
+        """Initializes each player with a city and a warrior unit at a random location."""
+        available_hexes = list(self.board.grid.values())
+        random.shuffle(available_hexes)
+
+        for player in self.players:
+            while True:
+                if not available_hexes:
+                    print("Error: Not enough available hexes for all players.")
+                    return
+
+                start_hex = available_hexes.pop()
+                if start_hex.terrain and not start_hex.unit and not start_hex.building:
+                    break
+
+            GameEntityFactory.create_city('city', start_hex, player, self)
+            warrior = GameEntityFactory.create_unit('warrior', start_hex, player, self)
+            player.units.add(warrior)
+
+            center_pixel = start_hex.to_pixel(self.board.layout)
+            player.camera_x = center_pixel.x - self.camera.width // 2
+            player.camera_y = center_pixel.y - self.camera.height // 2
 
     def next_player(self):
         """Advances the game to the next player's turn and ends round if necessary."""
@@ -376,4 +408,5 @@ class GameManager:
 
     def save_game(self):
         """Saves the current game state to a JSON file."""
-        save_game(self)
+        save_path = os.path.join('data', 'saves', self.save_name)
+        save_game(self, filename=save_path)

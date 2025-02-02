@@ -226,10 +226,15 @@ class MainMenu:
                 if event.type == pygame.USEREVENT:
                     if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                         if event.ui_element == self.start_button_ng:
+                            save_name = self.save_name_entry.get_text()
+                            if not save_name:
+                                save_name = 'savegame'
+                            if not save_name.endswith('.json'):
+                                save_name += '.json'
                             self.new_game_options_data = {
                                 'player_count': int(self.player_count_dropdown.selected_option[0]),
-                                'level_name': self.level_dropdown.selected_option[0],
-                                'save_name': self.save_name_entry.get_text()
+                                'level_name': self.level_dropdown.selected_option,
+                                'save_name': save_name
                             }
                             self.new_game_requested = True
                             self.new_game_screen_active = False
@@ -276,11 +281,6 @@ class MainMenu:
             manager=self.load_game_manager
         )
 
-        self.save_info_text_box = pygame_gui.elements.UITextBox(
-            relative_rect=pygame.Rect((340, 360), (510, 100)),
-            html_text="",
-            manager=self.load_game_manager
-        )
         self.load_game_data = {}
         self.load_game_screen_active = True
 
