@@ -126,43 +126,78 @@ class MainMenu:
             return "quit", {}
 
     def rules(self):
-        rs = pygame.Surface((700, 800))
-        A = pygame.font.Font(None, 36)
-        rs.fill((29, 128, 10))
-        text_lines = [
-            "Правила игры:",
-            "1. ",
-            "2. ",
-            "3.",
-            "Нажмите на любую кнопку для закрытия"
+        self.rules_manager = pygame_gui.UIManager((self.screen.get_width(), self.screen.get_height()),
+                                                  os.path.join('data', 'theme', 'game_theme.json'))
+
+        self.rules_background = pygame.Surface((800, 530))
+        self.rules_background.fill(pygame.Color("#1D800A"))
+
+        self.rules_text = [
+            "               Краткое руководство",
+            "Цель игры: уничтожить всех противников.",
+            "Игровой процесс:",
+            "  - Игра пошаговая, каждый игрок ходит по очереди.",
+            "  - В свой ход вы можете перемещать юнитов и атаковать.",
+            "  - Юниты могут атаковать только один раз за ход.",
+            "  - Города производят ресурсы и могут создавать юнитов.",
+            "  - Вы можете основать новый город, если в радиусе 5 клеток от",
+            "    него нет других городов.",
+            "  - Для постройки зданий или найма юнитов в городе нажмите 'Q'.",
+            "Ресурсы:",
+            "  - Золото, дерево, камень, металл и еда.",
+            "  - Ресурсы производятся городами каждый ход.",
+            "  - Юниты потребляют золото каждый ход.",
+            "Управление юнитами:",
+            "  - Выберите юнита, чтобы увидеть доступные действия.",
+            "  - Синим подсвечиваются клетки для перемещения.",
+            "  - Желтым - враги, которых можно атаковать после перемещения.",
+            "  - Красным - враги, которых можно атаковать без перемещения.",
+            "Управление городами:",
+            "  - Нажмите на город, чтобы увидеть информацию.",
+            "  - Нажмите 'Q', чтобы открыть меню города:",
+            "  - В меню города доступны: постройка зданий и найм юнитов.",
+            "Начало игры:",
+            "  - Новая игра: выберите количество игроков и имя сохранения.",
+            "  - Загрузить игру: выберите сохранение из списка.",
+            "Сохранение и загрузка:",
+            "  - Сохранить игру можно в меню паузы (Esc).",
+            "  - Загрузить игру можно в главном меню.",
+            "",
         ]
 
-        for i, line in enumerate(text_lines):
-            t = A.render(line, True, (0, 0, 0))
-            rs.blit(t, (20, 20 + 35 * i))
+        self.text_box = pygame_gui.elements.UITextBox(
+            html_text="<br>".join(self.rules_text),
+            relative_rect=pygame.Rect((0, 0), (1000, 500)),
+            manager=self.rules_manager,
+            object_id=pygame_gui.core.ObjectID(class_id='@rules_text_box')
+        )
+        self.back_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect((500, 630), (150, 40)),
+            text='Назад',
+            manager=self.rules_manager
+        )
+
         self.rules_screen_active = True
         while self.rules_screen_active:
+            time_delta = self.clock.tick(60) / 1000.0
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.rules_screen_active = False
                     self.is_running = False
-                elif event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
-                    self.rules_screen_active = False
-                    self.sr = False
-                    self.show_menu_buttons()
-                    break
-                self.manager.process_events(event)
-                self.themed_manager.process_events(event)
+                elif event.type == pygame.USEREVENT:
+                    if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                        if event.ui_element == self.back_button:
+                            self.rules_screen_active = False
+                            self.show_menu_buttons()
+                            break
 
+                self.rules_manager.process_events(event)
             self.screen.fill((29, 128, 10))
-            self.screen.blit(rs, (200, 150))
-            self.manager.update(
-                self.clock.tick(60) / 1000.0)
-            self.themed_manager.update(
-                self.clock.tick(60) / 1000.0)
-            self.manager.draw_ui(self.screen)
-            self.themed_manager.draw_ui(self.screen)
+            self.screen.blit(self.rules_background, (160, 70))
+            self.rules_manager.update(time_delta)
+            self.rules_manager.draw_ui(self.screen)
             pygame.display.flip()
+        self.rules_manager.clear_and_reset()
 
     def new_game_options(self):
         self.new_game_manager = self.themed_manager

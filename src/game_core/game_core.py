@@ -1,4 +1,3 @@
-# game_core.py
 import os
 
 import pygame
@@ -21,11 +20,11 @@ class Player:
         self.buildings = pygame.sprite.Group()
 
         self.resources = {
-            "gold": 2000,
-            "wood": 2000,
-            "stone": 2000,
-            "metal": 0,
-            "food": 20,
+            "gold": 500,
+            "wood": 500,
+            "stone": 400,
+            "metal": 200,
+            "food": 100,
         }
 
         self.income = {
@@ -135,7 +134,7 @@ class GameManager:
                     return
 
                 start_hex = available_hexes.pop()
-                if start_hex.terrain and not start_hex.unit and not start_hex.building:
+                if self.can_build_new_city_on_tile(start_hex):
                     break
 
             GameEntityFactory.create_city('city', start_hex, player, self)

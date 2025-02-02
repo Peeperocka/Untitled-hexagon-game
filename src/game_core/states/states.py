@@ -133,6 +133,7 @@ class BuildingNewCityState(GameState):
             self.game_manager.build_new_city_on_tile(clicked_tile, self.game_manager.get_current_player())
         else:
             print("Cannot build a new city on this tile.")
+            self.game_manager.hud_manager.dynamic_message_manager.create_message("Нельзя построить город здесь.")
             self.game_manager.current_state = self.game_manager.selecting_unit_state
             self.game_manager.new_city_origin = None
             self.board.highlighted_hexes = []

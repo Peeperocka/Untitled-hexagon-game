@@ -4,7 +4,6 @@ import pygame
 from src.entities.base.game_objects import Building
 from src.utils import hex_utils
 from src.utils.utils import load_image
-from src.entities.base.blueprints import CityBlueprint
 from src.entities.game.registry import CITY_IMPROVEMENT_BLUEPRINTS, UNIT_BLUEPRINTS
 
 
@@ -130,6 +129,10 @@ class City(Building):
         self.food_production = 5
         self.gold_income = 10
         self.stone_income = 0
+        self.defense = self.blueprint.defense
+        self.attack = self.blueprint.base_attack
+        self.min_damage = self.blueprint.min_damage
+        self.max_damage = self.blueprint.max_damage
         self.available_unit_types = []
         provides_food_storage = 0
 
@@ -147,6 +150,13 @@ class City(Building):
                 elif effect_type == "stone_income":
                     self.stone_income += int(effect_value)
                     player_income["stone"] += int(effect_value)
+                elif effect_type == "metal_income":
+                    player_income["metal"] += int(effect_value)
+                elif effect_type == "city_defense_bonus":
+                    self.defense += int(effect_value)
+                elif effect_type == "city_attack_bonus":
+                    self.min_damage += int(effect_value)
+                    self.max_damage += int(effect_value)
                 elif effect_type == "unit_recruitment":
                     self.available_unit_types.append(effect_value)
                 elif effect_type == "food_storage":
@@ -194,6 +204,7 @@ class City(Building):
             f"Хранилище еды: {self.food_storage}/{self.max_food_storage}",
             f"Доход золота: {self.gold_income}",
             f"Добыча камня: {self.stone_income}",
+            f"Добыча металла: {self.player.income['metal']}",
             f"Строится улучшение: {improvement_name}",
             f"Наем юнита: {unit_name}",
             f"Постройки города: {improvement_list_str}"
